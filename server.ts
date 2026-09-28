@@ -302,6 +302,52 @@ Responde en 2 o 3 párrafos concisos con estrategias pedagógicas prácticas, ap
   return res.json({ reply, source: 'heuristic' });
 });
 
+// TTS Endpoint (Optional premium voice powered by Gemini TTS, Kore prebuilt voice)
+app.post('/api/yacita/tts', async (req: Request, res: Response) => {
+  const { text } = req.body;
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ error: 'Text is required' });
+  }
+
+  if (aiClient) {
+    try {
+      const response = await aiClient.models.generateContent({
+        model: 'gemini-3.8-flash-lite-tts',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: text.slice(0, 300),
+                speechMetadata: {
+                  style: 'Warm, clear, pedagogical Colombian female teacher voice',
+                },
+              },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        },
+      });
+
+      const audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (audio) {
+        return res.json({ audio, mimeType: 'audio/pcm;rate=24000', source: 'gemini' });
+      }
+    } catch (err) {
+      console.warn('Gemini TTS error (will fallback to browser Web Speech API):', err);
+    }
+  }
+
+  return res.status(503).json({ error: 'Server TTS unavailable' });
+});
+
 // Setup dev server with Vite middleware or static serve in prod
 async function startServer() {
   if (!isProd) {

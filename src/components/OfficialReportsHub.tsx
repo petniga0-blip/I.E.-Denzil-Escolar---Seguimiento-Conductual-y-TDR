@@ -193,6 +193,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             <button
               onClick={handleGenerateParentSummary}
               disabled={isGeneratingSummary}
+              data-yacita="reports_btn_parent_summary"
               className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white transition-colors shadow-xs min-h-[44px]"
               title="Redactar un informe empático y propositivo para la familia con Yacita"
             >
@@ -204,6 +205,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             <button
               onClick={handleDownloadPDF}
               disabled={isExportingPDF}
+              data-yacita="reports_btn_download_pdf"
               className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white transition-colors shadow-xs min-h-[44px]"
               title="Descargar documento PDF oficial tamaño Carta con membrete institucional"
             >
@@ -214,6 +216,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             <button
               onClick={handleDownloadWord}
               disabled={isDownloadingWord}
+              data-yacita="reports_btn_download_word"
               className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-blue-700 hover:bg-blue-800 text-white transition-colors shadow-xs min-h-[44px]"
             >
               <Download className="w-4 h-4" />
@@ -230,6 +233,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
 
             <button
               onClick={onSyncDrive}
+              data-yacita="reports_btn_sync_drive"
               className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-xs min-h-[44px]"
             >
               <Cloud className="w-4 h-4" />
@@ -257,6 +261,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
                 setSelectedStudentId(e.target.value);
                 setSelectedIncidentId('ninguno');
               }}
+              data-yacita="reports_student_select"
               className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-[44px]"
             >
               {students.map((s) => (
@@ -275,6 +280,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
+              data-yacita="reports_date_select"
               className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-[44px]"
             />
           </div>
@@ -286,6 +292,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             <select
               value={selectedIncidentId}
               onChange={(e) => setSelectedIncidentId(e.target.value)}
+              data-yacita="reports_incident_select"
               className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-[44px]"
             >
               <option value="ninguno">Auto (Por fecha o informe regular sin incidente)</option>

@@ -142,6 +142,8 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                data-yacita="matrix_date_input"
+                data-date={selectedDate}
                 className="bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-hidden"
               />
             </div>
@@ -150,6 +152,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
+              data-yacita="matrix_filter_grade"
               className="px-3 py-2 text-xs sm:text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 focus:outline-hidden min-h-[44px]"
             >
               <option value="todos">Todos los Grados</option>
@@ -164,6 +167,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
             <select
               value={selectedShift}
               onChange={(e) => setSelectedShift(e.target.value)}
+              data-yacita="matrix_filter_shift"
               className="px-3 py-2 text-xs sm:text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 focus:outline-hidden min-h-[44px]"
             >
               <option value="todos">Todas las Jornadas</option>
@@ -175,6 +179,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
           {/* Quick Batch Button */}
           <button
             onClick={handleMarkAllAchieved}
+            data-yacita="matrix_btn_mark_all"
             title="Asignar 'Logrado (3★)' a todos los estudiantes de la vista para luego afinar individualmente"
             className="flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs min-h-[44px]"
           >
@@ -336,6 +341,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c1}
+                            studentName={student.fullName}
                             onChange={(val) => handleScoreChange(student, 'c1', val)}
                           />
                         </td>
@@ -344,6 +350,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c2}
+                            studentName={student.fullName}
                             onChange={(val) => handleScoreChange(student, 'c2', val)}
                           />
                         </td>
@@ -352,6 +359,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c3}
+                            studentName={student.fullName}
                             onChange={(val) => handleScoreChange(student, 'c3', val)}
                           />
                         </td>
@@ -360,6 +368,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c4}
+                            studentName={student.fullName}
                             onChange={(val) => handleScoreChange(student, 'c4', val)}
                           />
                         </td>
@@ -368,6 +377,8 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-4 text-center">
                           <button
                             onClick={() => onOpenABCForStudent(student)}
+                            data-yacita="matrix_btn_open_abc"
+                            data-student-name={student.fullName}
                             title="Registrar incidencia A-B-C para este estudiante"
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 transition-colors min-h-[44px]"
                           >
@@ -408,6 +419,8 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                     </div>
                     <button
                       onClick={() => onOpenABCForStudent(student)}
+                      data-yacita="matrix_btn_open_abc"
+                      data-student-name={student.fullName}
                       className="text-xs px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 min-h-[44px] flex items-center gap-1 font-semibold"
                     >
                       <FilePlus2 className="w-3.5 h-3.5" />
@@ -423,6 +436,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c1}
+                        studentName={student.fullName}
                         onChange={(val) => handleScoreChange(student, 'c1', val)}
                       />
                     </div>
@@ -433,6 +447,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c2}
+                        studentName={student.fullName}
                         onChange={(val) => handleScoreChange(student, 'c2', val)}
                       />
                     </div>
@@ -443,6 +458,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c3}
+                        studentName={student.fullName}
                         onChange={(val) => handleScoreChange(student, 'c3', val)}
                       />
                     </div>
@@ -453,6 +469,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c4}
+                        studentName={student.fullName}
                         onChange={(val) => handleScoreChange(student, 'c4', val)}
                       />
                     </div>
@@ -470,16 +487,19 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
 // Subcomponent: 1-Click Score Toggle Group (Logrado, En Proceso, Requiere Apoyo)
 interface ScoreToggleGroupProps {
   current: ScoreLevel;
+  studentName?: string;
   onChange: (level: ScoreLevel) => void;
 }
 
-const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, onChange }) => {
+const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, studentName, onChange }) => {
   return (
     <div className="inline-flex items-center p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 gap-1">
       {/* 3: Logrado (Verde esmeralda / 3★) */}
       <button
         type="button"
         onClick={() => onChange(3)}
+        data-yacita="matrix_score_3"
+        data-student-name={studentName}
         title="Logrado (3 estrellas) - Cumple el criterio formativo"
         className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all min-h-[38px] sm:min-h-[34px] flex items-center justify-center gap-0.5 ${
           current === 3
@@ -495,6 +515,8 @@ const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, onChange }
       <button
         type="button"
         onClick={() => onChange(2)}
+        data-yacita="matrix_score_2"
+        data-student-name={studentName}
         title="En Proceso (2 estrellas) - Requiere pauta o recordatorio"
         className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all min-h-[38px] sm:min-h-[34px] flex items-center justify-center gap-0.5 ${
           current === 2
@@ -510,6 +532,8 @@ const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, onChange }
       <button
         type="button"
         onClick={() => onChange(1)}
+        data-yacita="matrix_score_1"
+        data-student-name={studentName}
         title="Requiere Acompañamiento (1 estrella) - Necesita regulación"
         className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all min-h-[38px] sm:min-h-[34px] flex items-center justify-center gap-0.5 ${
           current === 1

@@ -11,3 +11,10 @@ El membrete de los reportes sale SOLO de src/config/membrete.ts y del módulo Me
 - **Cabezote**: ÚNICAMENTE arriba en cada página. Consta de Sello Denzil a la izquierda, título institucional en azul `#0B2A6B` y 3 líneas oficiales (Decreto, DANE, NIT) al centro, y Logo CAT a la derecha, rematado por una barra negra gruesa con leve resplandor azul.
 - **Pie**: ÚNICAMENTE abajo en cada página. Consta de línea negra delgada con leve resplandor azul y tres columnas: Progreso/Paz a la izquierda, Dirección/Web/Correo al centro, y Sabiduría/Cultura a la derecha.
 - En los reportes no debe aparecer "República de Colombia...", ni lemas ni direcciones amontonadas en el cabezote.
+
+## 4. Sistema de Acompañamiento y Guía de Yacita
+- Todo elemento interactivo nuevo debe llevar `data-yacita` y su mensaje en `src/config/yacitaMensajes.ts`.
+- Toda pantalla, campo o botón nuevo lleva guía (función + consejo) en `guiaCampos` y `textoVoz`.
+- La voz de Yacita es femenina, en español, con respaldo automático y nunca envía datos personales de estudiantes a servicios externos.
+- El listener global del orquestador en `src/coach/YacitaCoachContext.tsx` no se elimina ni se desactiva.
+- Prohibición absoluta de SVG, canvas o dibujos para Yacita: sus expresiones son únicamente los archivos PNG oficiales ubicados en `src/assets/` y referenciados en `YACITA_IMAGE_MAP`.

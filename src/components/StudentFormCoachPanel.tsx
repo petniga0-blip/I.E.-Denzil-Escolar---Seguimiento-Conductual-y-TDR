@@ -1,12 +1,25 @@
 import React, { useMemo } from 'react';
-import { Check, Sparkles, AlertTriangle, Users, Phone, HeartHandshake } from 'lucide-react';
+import {
+  Check,
+  Sparkles,
+  AlertTriangle,
+  Users,
+  Phone,
+  HeartHandshake,
+  RotateCw,
+  Info,
+  Lightbulb,
+} from 'lucide-react';
 import { Student, ShiftType } from '../types';
+import { useYacitaCoach } from '../coach';
+import { getGuiaCampo } from '../config/yacitaMensajes';
 
-// Institutional PNGs for Yacita
+// Institutional PNGs for Yacita - Strict Anti-SVG rule
 import yacitaApuntando from '../assets/apuntando_notas.png';
 import yacitaEmpatica from '../assets/empatica.png';
 import yacitaPulgar from '../assets/pulgar_arriba.png';
 import yacitaHablando from '../assets/hablando.png';
+import yacitaCelebrando from '../assets/celebrando.png';
 
 export type StudentFormFieldKey =
   | 'fullName'
@@ -15,6 +28,8 @@ export type StudentFormFieldKey =
   | 'guardianName'
   | 'contactPhone'
   | 'medicalSensoryNotes'
+  | 'save'
+  | 'cancel'
   | null;
 
 export interface StudentFormCoachPanelProps {
@@ -54,14 +69,20 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
   onApplyGuardianName,
   onApplyNotes,
 }) => {
-  // 1. Calculate completion progress (5 key fields)
+  const {
+    activeFieldGuide,
+    activeConsejoIndex,
+    rotateConsejo,
+    isSpeaking,
+  } = useYacitaCoach();
+
+  // Completion calculation (5 mandatory fields)
   const completedCount = useMemo(() => {
     let count = 0;
     if (fullName.trim().length >= 3) count++;
     if (grade.trim().length >= 3) count++;
     if (shift) count++;
     if (guardianName.trim().length >= 3) count++;
-    // Phone or notes counted towards full profile
     const rawPhone = contactPhone.replace(/\D/g, '');
     if (rawPhone.length === 10 || medicalSensoryNotes.trim().length > 0) count++;
     return count;
@@ -73,7 +94,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
     return Array.from(set).sort();
   }, [students]);
 
-  // Check duplicate full name
+  // Duplicate name detection
   const duplicateStudent = useMemo(() => {
     if (!fullName.trim() || fullName.trim().length < 4) return null;
     const cleanInput = fullName.trim().toLowerCase();
@@ -87,7 +108,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
     );
   }, [fullName, students, currentStudentId]);
 
-  // Check predominant shift for the chosen grade
+  // Predominant shift for chosen grade
   const predominantShift = useMemo(() => {
     if (!grade.trim()) return null;
     const sameGradeStudents = students.filter(
@@ -102,11 +123,10 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
     return (sorted[0]?.[0] as ShiftType) || null;
   }, [grade, students]);
 
-  // Sibling guardian recommendation (match by surname)
+  // Sibling guardian recommendation
   const suggestedGuardian = useMemo(() => {
     if (!fullName.trim() || fullName.trim().split(/\s+/).length < 2) return null;
     const words = fullName.trim().split(/\s+/);
-    // last word or last two words
     const surnames = words.slice(1).map((w) => w.toLowerCase());
     for (const s of students) {
       if (s.id === currentStudentId) continue;
@@ -126,13 +146,13 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
   const phoneValidation = useMemo(() => {
     const raw = contactPhone.replace(/\D/g, '');
     if (!raw) return null;
-    if (raw.length < 10) return { valid: false, message: `Faltan ${10 - raw.length} dígitos (son 10)` };
+    if (raw.length < 10) return { valid: false, message: `Faltan ${10 - raw.length} dígitos (el celular en Colombia tiene 10)` };
     if (raw.length > 10) return { valid: false, message: `Sobran ${raw.length - 10} dígitos` };
     if (!raw.startsWith('3')) return { valid: false, message: 'El celular en Colombia inicia con 3' };
     return { valid: true, message: 'Número válido (10 dígitos)' };
   }, [contactPhone]);
 
-  // Title case helper
+  // Fix casing
   const handleFixNameFormat = () => {
     const formatted = fullName
       .trim()
@@ -143,18 +163,48 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
     onApplyFullName(formatted);
   };
 
+  // Resolve current active field key
+  const effectiveFieldKey = useMemo(() => {
+    if (activeFieldGuide?.id?.startsWith('field_')) {
+      return activeFieldGuide.id.replace('field_', '');
+    }
+    if (activeFieldGuide?.id === 'btn_student_save') return 'save';
+    if (activeFieldGuide?.id === 'btn_student_cancel') return 'cancel';
+    return focusedField || 'fullName';
+  }, [activeFieldGuide, focusedField]);
+
+  // Resolve GuiaCampo item from catalog
+  const currentGuia = useMemo(() => {
+    const catalogKey =
+      effectiveFieldKey === 'save'
+        ? 'btn_student_save'
+        : effectiveFieldKey === 'cancel'
+        ? 'btn_student_cancel'
+        : `field_${effectiveFieldKey}`;
+
+    return getGuiaCampo(catalogKey, { nombre: teacherFirstName });
+  }, [effectiveFieldKey, teacherFirstName]);
+
   // Determine active Yacita image
-  let activeImage = yacitaApuntando;
-  if (duplicateStudent) {
-    activeImage = yacitaEmpatica;
-  } else if (completedCount === 5) {
-    activeImage = yacitaPulgar;
-  } else if (focusedField) {
-    activeImage = yacitaHablando;
-  }
+  const activeImage = useMemo(() => {
+    if (duplicateStudent) return yacitaEmpatica;
+    if (isSpeaking) return yacitaHablando;
+    if (completedCount === 5) return yacitaCelebrando;
+    if (effectiveFieldKey === 'fullName' || effectiveFieldKey === 'grade') return yacitaApuntando;
+    return yacitaPulgar;
+  }, [duplicateStudent, isSpeaking, completedCount, effectiveFieldKey]);
+
+  // Active consejo with rotation
+  const currentConsejo = useMemo(() => {
+    if (!currentGuia || currentGuia.consejos.length === 0) return '';
+    return currentGuia.consejos[activeConsejoIndex % currentGuia.consejos.length];
+  }, [currentGuia, activeConsejoIndex]);
 
   return (
-    <aside className="w-full lg:w-80 shrink-0 bg-slate-50 dark:bg-[#0c152e] border-b lg:border-b-0 lg:border-l border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col justify-between">
+    <aside
+      className="w-full lg:w-80 shrink-0 bg-slate-50 dark:bg-[#0c152e] border-b lg:border-b-0 lg:border-l border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col justify-between"
+      aria-label="Panel de Acompañamiento y Guía de Yacita"
+    >
       <div>
         {/* Header & Progress */}
         <div className="flex items-center gap-3 mb-4">
@@ -188,186 +238,242 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
 
         {/* Status Pill */}
         <div className="mb-4 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
-          <span>Progreso obligatorio:</span>
+          <span>Campos completados:</span>
           <span className="font-bold text-emerald-700 dark:text-emerald-400">
-            {completedCount === 5 ? '¡Listo para guardar! ⭐' : `Vas ${completedCount} de 5 campos`}
+            {completedCount === 5 ? '¡Listo para guardar! ⭐' : `${completedCount} de 5 campos`}
           </span>
         </div>
 
-        {/* Dynamic Contextual Guidance based on current field */}
-        <div className="space-y-3">
-          {(!focusedField || focusedField === 'fullName') && (
-            <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 text-xs space-y-2">
-              <p className="font-semibold text-amber-900 dark:text-amber-200">
-                1. Nombre completo del estudiante:
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
-                Ingresa nombres y apellidos completos como figuran en el documento de identidad. Ej: Juan Andrés Pushaina Epieyú.
-              </p>
-
-              {fullName.trim().length > 2 && (
-                <button
-                  type="button"
-                  onClick={handleFixNameFormat}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-100/50 transition-colors shadow-2xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Corregir mayúsculas y formato</span>
-                </button>
-              )}
-
-              {duplicateStudent && (
-                <div className="p-2 rounded-lg bg-red-100/80 dark:bg-red-950/50 border border-red-300 dark:border-red-800 text-[11px] text-red-800 dark:text-red-300 flex items-start gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Posible duplicado:</strong> Ya existe registrado{' '}
-                    <em>«{duplicateStudent.fullName}»</em> ({duplicateStudent.grade}). Verifica si es un reingreso.
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {focusedField === 'grade' && (
-            <div className="p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/60 text-xs space-y-2">
-              <p className="font-semibold text-blue-900 dark:text-blue-200">
-                2. Grado / Grupo:
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
-                Usa el formato institucional (ej. 1-01, 1-02). Puedes seleccionar uno de los grupos ya existentes:
-              </p>
-              {uniqueGrades.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {uniqueGrades.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => onApplyGrade(g)}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all ${
-                        grade === g
-                          ? 'bg-blue-600 text-white shadow-2xs'
-                          : 'bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 hover:bg-blue-100/60'
-                      }`}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {focusedField === 'shift' && (
-            <div className="p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 text-xs space-y-2">
-              <p className="font-semibold text-indigo-900 dark:text-indigo-200">
-                3. Jornada Escolar:
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
-                Selecciona Mañana o Tarde según el horario regular del curso.
-              </p>
-              {predominantShift && predominantShift !== shift && (
-                <button
-                  type="button"
-                  onClick={() => onApplyShift(predominantShift)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-700 text-indigo-800 dark:text-indigo-300 text-[11px] font-medium hover:bg-indigo-100/50 transition-colors shadow-2xs"
-                >
-                  <Users className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Sugerir jornada de compañeros: «{predominantShift}»</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {focusedField === 'guardianName' && (
-            <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 text-xs space-y-2">
-              <p className="font-semibold text-emerald-900 dark:text-emerald-200">
-                4. Nombre del Acudiente / Familiar:
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
-                Es la persona autorizada para contactar y firmar actas o compromisos formativos.
-              </p>
-              {suggestedGuardian && (
-                <button
-                  type="button"
-                  onClick={() => onApplyGuardianName(suggestedGuardian.guardianName)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium hover:bg-emerald-100/50 transition-colors shadow-2xs"
-                >
-                  <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Sugerir acudiente de {suggestedGuardian.siblingName.split(' ')[0]}: «{suggestedGuardian.guardianName}»</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {focusedField === 'contactPhone' && (
-            <div className="p-3 rounded-xl bg-teal-50/80 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800/60 text-xs space-y-2">
-              <p className="font-semibold text-teal-900 dark:text-teal-200">
-                5. Teléfono de Contacto:
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
-                Celular colombiano a 10 dígitos. Lo formateamos automáticamente para fácil lectura.
-              </p>
-              {phoneValidation && (
-                <div
-                  className={`p-2 rounded-lg text-[11px] flex items-center gap-1.5 ${
-                    phoneValidation.valid
-                      ? 'bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300'
-                      : 'bg-amber-100/80 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300'
-                  }`}
-                >
-                  {phoneValidation.valid ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  ) : (
-                    <Phone className="w-3.5 h-3.5 text-amber-600" />
+        {/* Dynamic Contextual Guidance with aria-live="polite" */}
+        <div
+          aria-live="polite"
+          className="p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-amber-300/80 dark:border-amber-600/60 shadow-xs text-xs space-y-3 animate-in fade-in duration-200"
+        >
+          {currentGuia && (
+            <>
+              {/* Field Number & Label */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div className="flex items-center gap-1.5">
+                  {currentGuia.numero && (
+                    <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-black text-[11px] flex items-center justify-center">
+                      {currentGuia.numero}
+                    </span>
                   )}
-                  <span>{phoneValidation.message}</span>
+                  <h5 className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                    {currentGuia.etiqueta}
+                  </h5>
                 </div>
-              )}
-            </div>
-          )}
+                {currentGuia.consejos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => rotateConsejo(currentGuia.id)}
+                    className="flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400 font-semibold hover:underline"
+                    title="Rotar y ver otro consejo para este campo"
+                  >
+                    <RotateCw className="w-3 h-3" />
+                    <span>Ver otro consejo</span>
+                  </button>
+                )}
+              </div>
 
-          {focusedField === 'medicalSensoryNotes' && (
-            <div className="p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/60 text-xs space-y-2">
-              <p className="font-semibold text-purple-900 dark:text-purple-200">
-                6. Observación Médica o Sensorial:
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 text-[11.5px] leading-relaxed">
-                Información sobre salud o necesidades sensoriales para adaptar las actividades de clase.
-              </p>
+              {/* "Para qué sirve" (Function) */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                  <Info className="w-3 h-3 text-blue-500" />
+                  ¿Para qué sirve?
+                </span>
+                <p className="text-slate-700 dark:text-slate-300 text-[11.5px] leading-relaxed">
+                  {currentGuia.funcion}
+                </p>
+              </div>
 
-              {!medicalSensoryNotes.trim() && (
-                <button
-                  type="button"
-                  onClick={() => onApplyNotes('Sin observaciones médicas reportadas')}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300 text-[11px] font-medium hover:bg-purple-100/50 transition-colors shadow-2xs"
-                >
-                  <Check className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Usar: «Sin observaciones médicas reportadas»</span>
-                </button>
-              )}
+              {/* Concrete Rotating Advice */}
+              <div className="p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1">
+                  <Lightbulb className="w-3 h-3 text-amber-500" />
+                  Consejo de Yacita:
+                </span>
+                <p className="text-slate-700 dark:text-slate-200 text-[11.5px] leading-relaxed font-medium">
+                  {currentConsejo}
+                </p>
+              </div>
 
-              {medicalSensoryNotes.trim().length > 0 && medicalSensoryNotes.trim().length < 15 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onApplyNotes(
-                      `${medicalSensoryNotes.trim()}; requiere ubicación preferente y pausas motrices según necesidad.`
-                    )
-                  }
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300 text-[11px] font-medium hover:bg-purple-100/50 transition-colors shadow-2xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Ampliar redacción pedagógica formativa</span>
-                </button>
-              )}
-            </div>
+              {/* Interactive Chips & 1-Click Actions */}
+              <div className="pt-1 space-y-2">
+                {/* Full name actions */}
+                {effectiveFieldKey === 'fullName' && (
+                  <>
+                    {fullName.trim().length > 2 && (
+                      <button
+                        type="button"
+                        onClick={handleFixNameFormat}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100/70 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-[11px] font-semibold transition-colors shadow-2xs"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        <span>Corregir mayúsculas y tildes</span>
+                      </button>
+                    )}
+
+                    {duplicateStudent && (
+                      <div className="p-2 rounded-lg bg-red-100/90 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-[11px] text-red-900 dark:text-red-200 flex items-start gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <strong>Aviso amable:</strong> Ya existe registrado{' '}
+                          <em>«{duplicateStudent.fullName}»</em> ({duplicateStudent.grade}). Verifica si es un reingreso.
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Grade chips */}
+                {effectiveFieldKey === 'grade' && uniqueGrades.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">
+                      Grupos ya registrados:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {uniqueGrades.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => onApplyGrade(g)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                            grade === g
+                              ? 'bg-blue-600 text-white shadow-2xs'
+                              : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/60'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Shift suggestions */}
+                {effectiveFieldKey === 'shift' && (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onApplyShift('Mañana')}
+                        className={`flex-1 py-1 rounded-md text-[11px] font-semibold transition-all border ${
+                          shift === 'Mañana'
+                            ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        Mañana
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onApplyShift('Tarde')}
+                        className={`flex-1 py-1 rounded-md text-[11px] font-semibold transition-all border ${
+                          shift === 'Tarde'
+                            ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        Tarde
+                      </button>
+                    </div>
+
+                    {predominantShift && predominantShift !== shift && (
+                      <button
+                        type="button"
+                        onClick={() => onApplyShift(predominantShift)}
+                        className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 text-[11px] font-medium hover:bg-indigo-100/60 transition-colors"
+                      >
+                        <Users className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Sugerir jornada de compañeros: «{predominantShift}»</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Guardian suggestions */}
+                {effectiveFieldKey === 'guardianName' && suggestedGuardian && (
+                  <button
+                    type="button"
+                    onClick={() => onApplyGuardianName(suggestedGuardian.guardianName)}
+                    className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-[11px] font-medium hover:bg-emerald-100/60 transition-colors"
+                  >
+                    <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Sugerir acudiente de {suggestedGuardian.siblingName.split(' ')[0]}: «{suggestedGuardian.guardianName}»</span>
+                  </button>
+                )}
+
+                {/* Phone validation pill */}
+                {effectiveFieldKey === 'contactPhone' && phoneValidation && (
+                  <div
+                    className={`p-2 rounded-lg text-[11px] flex items-center gap-1.5 ${
+                      phoneValidation.valid
+                        ? 'bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-300'
+                        : 'bg-amber-100/90 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300'
+                    }`}
+                  >
+                    {phoneValidation.valid ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <Phone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    )}
+                    <span>{phoneValidation.message}</span>
+                  </div>
+                )}
+
+                {/* Medical sensory chips */}
+                {effectiveFieldKey === 'medicalSensoryNotes' && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                      Ejemplos pedagógicos estándar:
+                    </span>
+                    {currentGuia.chips?.map((chip, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => onApplyNotes(chip.value)}
+                        className="w-full text-left p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-purple-100/60 dark:hover:bg-purple-950/50 text-[11px] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5"
+                      >
+                        <Check className="w-3 h-3 text-purple-600 shrink-0" />
+                        <span className="truncate">{chip.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Save button explanation */}
+                {effectiveFieldKey === 'save' && (
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                    {completedCount === 5 ? (
+                      <p className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                        ✓ Todos los campos obligatorios están completos. Al guardar se creará la ficha del estudiante.
+                      </p>
+                    ) : (
+                      <p className="text-amber-700 dark:text-amber-400 font-semibold">
+                        Aún faltan {5 - completedCount} campos obligatorios. Complétalos para habilitar el guardado óptimo.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Cancel button explanation */}
+                {effectiveFieldKey === 'cancel' && (
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                    <p className="text-slate-500 dark:text-slate-400">
+                      Descarta cualquier edición realizada en esta ventana y regresa al directorio.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* Footer reassurance */}
+      {/* Footer Reassurance */}
       <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-        <span>I.E. Denzil Escolar · Acompañamiento empático</span>
+        <span>I.E. Denzil Escolar · Orientación pedagógica cálida</span>
       </div>
     </aside>
   );

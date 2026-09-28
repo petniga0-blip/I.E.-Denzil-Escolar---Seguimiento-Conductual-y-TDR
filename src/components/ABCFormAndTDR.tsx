@@ -256,6 +256,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
               <select
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
+                data-yacita="abc_student_select"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               >
                 {students.map((s) => (
@@ -274,6 +275,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                data-yacita="abc_date_time"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               />
             </div>
@@ -286,6 +288,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
+                data-yacita="abc_date_time"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               />
             </div>
@@ -299,6 +302,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Ej. Matemáticas, Recreo, Transición..."
+                data-yacita="abc_subject_input"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               />
             </div>
@@ -324,6 +328,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 value={expectedBehavior}
                 onChange={(e) => setExpectedBehavior(e.target.value)}
                 placeholder="Describa la conducta esperada..."
+                data-yacita="abc_expected_behavior"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               />
 
@@ -397,6 +402,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
               <select
                 value={trigger}
                 onChange={(e) => setTrigger(e.target.value)}
+                data-yacita="abc_trigger_select"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               >
                 {COMMON_TRIGGERS.map((trig, idx) => (
@@ -436,6 +442,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => handleToggleBehavior(beh)}
+                    data-yacita="abc_behavior_checkbox"
                     className={`flex items-center text-left gap-2.5 p-3 rounded-lg text-xs font-semibold border transition-all min-h-[44px] ${
                       isSelected
                         ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
@@ -495,6 +502,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 type="button"
                 onClick={handleSuggestPlanWithYacita}
                 disabled={isSuggestingPlan}
+                data-yacita="abc_btn_suggest_plan"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
                 title="Yacita evaluará las conductas marcadas y sugerirá la mejor combinación restaurativa"
               >
@@ -515,6 +523,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => handleToggleRegulatory(action)}
+                    data-yacita="abc_regulatory_checkbox"
                     className={`flex items-center text-left gap-2.5 p-3 rounded-lg text-xs font-semibold border transition-all min-h-[44px] ${
                       isSelected
                         ? 'bg-emerald-700 text-white border-emerald-800 shadow-2xs'
@@ -539,6 +548,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 value={restorativeAgreement}
                 onChange={(e) => setRestorativeAgreement(e.target.value)}
                 placeholder="Pacto concertado con el estudiante (reparación del material, respiración guiada, disculpa)..."
+                data-yacita="abc_restorative_agreement"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-none"
               />
 
@@ -585,6 +595,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
+              data-yacita="abc_btn_save"
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm transition-colors shadow-xs min-h-[44px]"
             >
               <Send className="w-4 h-4" />

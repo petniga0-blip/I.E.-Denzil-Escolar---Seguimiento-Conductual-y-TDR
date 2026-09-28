@@ -82,6 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenGoogleModal}
               title="Cuenta Docente y Google"
+              data-yacita="header_profile"
               className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors shadow-2xs min-h-[44px]"
             >
               {teacher.isGoogleConnected && teacher.googleAvatar ? (
@@ -108,6 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenSyncModal}
               title="Guardar / Sincronizar en Google Drive"
+              data-yacita="header_drive_sync"
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors min-h-[44px]"
             >
               <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -118,6 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onExportBackup}
               title="Exportar respaldo de datos en archivo .json"
+              data-yacita="header_backup_export"
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors min-h-[44px]"
             >
               <Download className="w-3.5 h-3.5" />
@@ -135,6 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => fileInputRef.current?.click()}
               title="Restaurar copia de respaldo .json"
+              data-yacita="header_backup_import"
               className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <Upload className="w-4 h-4" />
@@ -144,6 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onToggleTheme}
               title={isDark ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+              data-yacita="header_theme_toggle"
               className="p-2 rounded-lg text-slate-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Alternar tema visual"
             >
@@ -156,6 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className="mt-4 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1" aria-label="Módulos de la aplicación">
           <button
             id="nav-tab-students"
+            data-yacita="nav_tab_students"
             onClick={() => onSelectTab('students')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'students'
@@ -169,6 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             id="nav-tab-matrix"
+            data-yacita="nav_tab_matrix"
             onClick={() => onSelectTab('matrix')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'matrix'
@@ -182,6 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             id="nav-tab-abc"
+            data-yacita="nav_tab_abc"
             onClick={() => onSelectTab('abc')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'abc'
@@ -195,6 +203,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             id="nav-tab-reports"
+            data-yacita="nav_tab_reports"
             onClick={() => onSelectTab('reports')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'reports'

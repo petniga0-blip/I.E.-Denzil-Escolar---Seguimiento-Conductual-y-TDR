@@ -209,6 +209,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar por estudiante o acudiente..."
+                data-yacita="students_search_input"
                 className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 min-h-[44px]"
               />
             </div>
@@ -217,6 +218,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
             <select
               value={filterGrade}
               onChange={(e) => setFilterGrade(e.target.value)}
+              data-yacita="students_filter_grade"
               className="w-full sm:w-auto px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-600 min-h-[44px]"
             >
               <option value="todos">Todos los Grados</option>
@@ -231,6 +233,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
             <select
               value={filterShift}
               onChange={(e) => setFilterShift(e.target.value)}
+              data-yacita="students_filter_shift"
               className="w-full sm:w-auto px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-600 min-h-[44px]"
             >
               <option value="todos">Todas las Jornadas</option>
@@ -242,6 +245,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
           {/* Add Student Button */}
           <button
             onClick={openAddModal}
+            data-yacita="students_btn_add"
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium text-sm transition-colors shadow-xs shrink-0 min-h-[44px]"
             title="Registrar nuevo estudiante con acompañamiento de Yacita"
           >
@@ -275,7 +279,12 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
             {filteredStudents.map((student) => (
               <div
                 key={student.id}
-                className="p-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                data-student-id={student.id}
+                data-yacita="student_row_item"
+                data-student-name={student.fullName}
+                data-grade={student.grade}
+                data-shift={student.shift}
+                className="p-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -309,7 +318,12 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
 
                 <div className="flex items-center gap-2 self-end sm:self-center">
                   <button
-                    onClick={() => onOpenTDRForStudent(student)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenTDRForStudent(student);
+                    }}
+                    data-yacita="student_action_tdr"
+                    data-student-name={student.fullName}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[38px]"
                     title="Ver Registro de Seguimiento y TDR oficial"
                   >
@@ -318,7 +332,12 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                   </button>
 
                   <button
-                    onClick={() => openEditModal(student)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(student);
+                    }}
+                    data-yacita="student_action_edit"
+                    data-student-name={student.fullName}
                     className="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center"
                     title="Editar datos del estudiante"
                   >
@@ -326,7 +345,12 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                   </button>
 
                   <button
-                    onClick={() => openDeleteModal(student)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDeleteModal(student);
+                    }}
+                    data-yacita="student_action_delete"
+                    data-student-name={student.fullName}
                     className="p-2 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center"
                     title="Eliminar estudiante"
                   >
@@ -388,6 +412,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                     value={fullName}
                     onFocus={() => setFocusedField('fullName')}
                     onChange={(e) => setFullName(e.target.value)}
+                    data-yacita="field_fullName"
                     placeholder="Ej. Juan Andrés Pushaina Epieyú"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                   />
@@ -411,6 +436,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                       value={grade}
                       onFocus={() => setFocusedField('grade')}
                       onChange={(e) => setGrade(e.target.value)}
+                      data-yacita="field_grade"
                       placeholder="Ej. 1-01, 1-02, 2-01..."
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                     />
@@ -430,6 +456,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                       value={shift}
                       onFocus={() => setFocusedField('shift')}
                       onChange={(e) => setShift(e.target.value as ShiftType)}
+                      data-yacita="field_shift"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                     >
                       <option value="Mañana">Mañana</option>
@@ -455,6 +482,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                     value={guardianName}
                     onFocus={() => setFocusedField('guardianName')}
                     onChange={(e) => setGuardianName(e.target.value)}
+                    data-yacita="field_guardianName"
                     placeholder="Ej. María Elena Uriana"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                   />
@@ -476,6 +504,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                     value={contactPhone}
                     onFocus={() => setFocusedField('contactPhone')}
                     onChange={handlePhoneChange}
+                    data-yacita="field_contactPhone"
                     placeholder="Ej. 315 123 4567"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                   />
@@ -497,6 +526,7 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                     value={medicalSensoryNotes}
                     onFocus={() => setFocusedField('medicalSensoryNotes')}
                     onChange={(e) => setMedicalSensoryNotes(e.target.value)}
+                    data-yacita="field_medicalSensoryNotes"
                     placeholder="Ej. Sensibilidad al calor, necesidad de lentes, pausas motoras guiadas..."
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden resize-none"
                   />
@@ -506,12 +536,14 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                   <button
                     type="button"
                     onClick={closeFormModal}
+                    data-yacita="btn_student_cancel"
                     className="px-4 py-2 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
+                    data-yacita="btn_student_save"
                     className="px-5 py-2 text-sm font-semibold rounded-lg bg-blue-700 hover:bg-blue-800 text-white transition-colors shadow-xs min-h-[44px]"
                   >
                     {editingStudent ? 'Guardar Cambios' : 'Guardar Estudiante'}
