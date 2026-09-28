@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Student,
   DailyCriterionScore,
@@ -26,10 +26,227 @@ import { OfficialReportsHub } from './components/OfficialReportsHub';
 import { OfficialReportModal } from './components/OfficialReportModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
-import { YacitaGuide } from './components/YacitaGuide';
+import { YacitaCoachProvider, useYacitaCoach, YacitaFloatingAvatar } from './coach';
+
+function MainAppContent({
+  isDark,
+  toggleTheme,
+  teacher,
+  setTeacher,
+  students,
+  setStudents,
+  scores,
+  setScores,
+  incidents,
+  setIncidents,
+  handleAddStudent,
+  handleUpdateStudent,
+  handleDeleteStudent,
+  handleUpdateScore,
+  handleUpdateNotes,
+  handleSetAllStudentsScore,
+  handleSaveIncident,
+  handleImportBackup,
+}: {
+  isDark: boolean;
+  toggleTheme: () => void;
+  teacher: TeacherProfile;
+  setTeacher: React.Dispatch<React.SetStateAction<TeacherProfile>>;
+  students: Student[];
+  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
+  scores: DailyCriterionScore[];
+  setScores: React.Dispatch<React.SetStateAction<DailyCriterionScore[]>>;
+  incidents: ABCIncident[];
+  setIncidents: React.Dispatch<React.SetStateAction<ABCIncident[]>>;
+  handleAddStudent: (studentData: Omit<Student, 'id' | 'createdAt'>) => void;
+  handleUpdateStudent: (updatedStudent: Student) => void;
+  handleDeleteStudent: (id: string) => void;
+  handleUpdateScore: (studentId: string, date: string, criterionKey: 'c1' | 'c2' | 'c3' | 'c4', level: ScoreLevel) => void;
+  handleUpdateNotes: (studentId: string, date: string, notes: string) => void;
+  handleSetAllStudentsScore: (date: string, studentIds: string[], level: ScoreLevel) => void;
+  handleSaveIncident: (incidentData: Omit<ABCIncident, 'id' | 'createdAt'>) => void;
+  handleImportBackup: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const { notifyTabChange, notifyModalOpen, notifyModalClose } = useYacitaCoach();
+
+  // App Tab Navigation
+  const [currentTab, setCurrentTab] = useState<'students' | 'matrix' | 'abc' | 'reports'>('matrix');
+
+  const handleSelectTab = (tab: 'students' | 'matrix' | 'abc' | 'reports') => {
+    setCurrentTab(tab);
+    notifyTabChange(tab);
+  };
+
+  // Modal States
+  const [selectedIncidentForReport, setSelectedIncidentForReport] = useState<ABCIncident | null>(null);
+  const [selectedStudentForReport, setSelectedStudentForReport] = useState<Student | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+  const [isDriveSyncModalOpen, setIsDriveSyncModalOpen] = useState(false);
+  const [preselectedStudentForABC, setPreselectedStudentForABC] = useState<string | undefined>();
+
+  // Shortcuts across views
+  const handleOpenTDRForStudent = (student: Student) => {
+    setSelectedStudentForReport(student);
+    const studentIncident = incidents.find((inc) => inc.studentId === student.id);
+    setSelectedIncidentForReport(studentIncident || null);
+    setIsReportModalOpen(true);
+    notifyModalOpen('tdr_report');
+  };
+
+  const handleOpenABCForStudent = (student: Student) => {
+    setPreselectedStudentForABC(student.id);
+    handleSelectTab('abc');
+  };
+
+  const handleOpenReportFromIncident = (incident: ABCIncident) => {
+    const targetStudent = students.find((s) => s.id === incident.studentId);
+    if (targetStudent) {
+      setSelectedStudentForReport(targetStudent);
+      setSelectedIncidentForReport(incident);
+      setIsReportModalOpen(true);
+      notifyModalOpen('tdr_report');
+    }
+  };
+
+  const openGoogleModal = () => {
+    setIsGoogleModalOpen(true);
+    notifyModalOpen('google_account');
+  };
+
+  const closeGoogleModal = () => {
+    setIsGoogleModalOpen(false);
+    notifyModalClose();
+  };
+
+  const openDriveSyncModal = () => {
+    setIsDriveSyncModalOpen(true);
+    notifyModalOpen('drive_sync');
+  };
+
+  const closeDriveSyncModal = () => {
+    setIsDriveSyncModalOpen(false);
+    notifyModalClose();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-800 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors">
+      {/* Institutional Header */}
+      <Header
+        currentTab={currentTab}
+        onSelectTab={handleSelectTab}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        teacher={teacher}
+        onOpenGoogleModal={openGoogleModal}
+        onOpenSyncModal={openDriveSyncModal}
+        onExportBackup={exportBackupJSON}
+        onImportBackup={handleImportBackup}
+      />
+
+      {/* Main Content Area with generous bottom padding (~140px) so floating companion never obstructs buttons/tables */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-36 sm:pb-40">
+        {currentTab === 'students' && (
+          <StudentManagement
+            students={students}
+            onAddStudent={handleAddStudent}
+            onUpdateStudent={handleUpdateStudent}
+            onDeleteStudent={handleDeleteStudent}
+            onOpenTDRForStudent={handleOpenTDRForStudent}
+          />
+        )}
+
+        {currentTab === 'matrix' && (
+          <BehaviorMatrix
+            students={students}
+            scores={scores}
+            onUpdateScore={handleUpdateScore}
+            onUpdateNotes={handleUpdateNotes}
+            onSetAllStudentsScore={handleSetAllStudentsScore}
+            onOpenABCForStudent={handleOpenABCForStudent}
+          />
+        )}
+
+        {currentTab === 'abc' && (
+          <ABCFormAndTDR
+            students={students}
+            incidents={incidents}
+            teacher={teacher}
+            preselectedStudentId={preselectedStudentForABC}
+            onSaveIncident={handleSaveIncident}
+            onOpenReportModal={handleOpenReportFromIncident}
+          />
+        )}
+
+        {currentTab === 'reports' && (
+          <OfficialReportsHub
+            students={students}
+            incidents={incidents}
+            scores={scores}
+            teacher={teacher}
+            onSyncDrive={openDriveSyncModal}
+          />
+        )}
+      </main>
+
+      {/* Official TDR Report Modal */}
+      {selectedStudentForReport && (
+        <OfficialReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            notifyModalClose();
+          }}
+          student={selectedStudentForReport}
+          incident={selectedIncidentForReport || undefined}
+          dailyScore={scores.find(
+            (sc) =>
+              sc.studentId === selectedStudentForReport.id &&
+              sc.date === (selectedIncidentForReport?.date || new Date().toISOString().split('T')[0])
+          )}
+          teacher={teacher}
+          onSyncToGoogleDrive={openDriveSyncModal}
+        />
+      )}
+
+      {/* Google Account & Teacher Profile Modal */}
+      <GoogleAccountModal
+        isOpen={isGoogleModalOpen}
+        onClose={closeGoogleModal}
+        teacher={teacher}
+        onUpdateTeacher={setTeacher}
+        onSyncDrive={openDriveSyncModal}
+      />
+
+      {/* Google Drive & Storage Sync Modal */}
+      <GoogleDriveSyncModal
+        isOpen={isDriveSyncModalOpen}
+        onClose={closeDriveSyncModal}
+        teacher={teacher}
+        onExportBackup={exportBackupJSON}
+        onImportBackup={handleImportBackup}
+      />
+
+      {/* Institutional Footer (Screen Only) */}
+      <footer className="no-print mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f1a38] py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>
+            Institución Educativa Denzil Escolar · Riohacha, La Guajira · 2026
+          </span>
+          <span className="font-medium text-emerald-700 dark:text-emerald-400">
+            Progreso · Paz · Sabiduría · Cultura
+          </span>
+        </div>
+      </footer>
+
+      {/* Yacita Floating Companion (Always Anchored Bubble, 7s auto-close, min-avatar, z-index 9999) */}
+      <YacitaFloatingAvatar />
+    </div>
+  );
+}
 
 export default function App() {
-  // Theme State (Dark mode defaults or system preference)
+  // Theme State
   const [isDark, setIsDark] = useState<boolean>(() => {
     return localStorage.getItem('denzil_theme_mode') === 'dark';
   });
@@ -46,22 +263,11 @@ export default function App() {
 
   const toggleTheme = () => setIsDark((prev) => !prev);
 
-  // App Tab Navigation
-  const [currentTab, setCurrentTab] = useState<'students' | 'matrix' | 'abc' | 'reports'>('matrix');
-
   // Core Data States
   const [students, setStudents] = useState<Student[]>(() => getStoredStudents());
   const [scores, setScores] = useState<DailyCriterionScore[]>(() => getStoredScores());
   const [incidents, setIncidents] = useState<ABCIncident[]>(() => getStoredIncidents());
   const [teacher, setTeacher] = useState<TeacherProfile>(() => getStoredTeacher());
-
-  // Modal States
-  const [selectedIncidentForReport, setSelectedIncidentForReport] = useState<ABCIncident | null>(null);
-  const [selectedStudentForReport, setSelectedStudentForReport] = useState<Student | null>(null);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
-  const [isDriveSyncModalOpen, setIsDriveSyncModalOpen] = useState(false);
-  const [preselectedStudentForABC, setPreselectedStudentForABC] = useState<string | undefined>();
 
   // Synchronize localStorage
   useEffect(() => {
@@ -98,7 +304,6 @@ export default function App() {
 
   const handleDeleteStudent = (id: string) => {
     setStudents((prev) => prev.filter((s) => s.id !== id));
-    // Also remove from scores
     setScores((prev) => prev.filter((sc) => sc.studentId !== id));
   };
 
@@ -197,36 +402,6 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setIncidents((prev) => [newIncident, ...prev]);
-
-    // Open report modal for immediate review/print
-    const targetStudent = students.find((s) => s.id === newIncident.studentId);
-    if (targetStudent) {
-      setSelectedStudentForReport(targetStudent);
-      setSelectedIncidentForReport(newIncident);
-      setIsReportModalOpen(true);
-    }
-  };
-
-  // Shortcuts across views
-  const handleOpenTDRForStudent = (student: Student) => {
-    setSelectedStudentForReport(student);
-    const studentIncident = incidents.find((inc) => inc.studentId === student.id);
-    setSelectedIncidentForReport(studentIncident || null);
-    setIsReportModalOpen(true);
-  };
-
-  const handleOpenABCForStudent = (student: Student) => {
-    setPreselectedStudentForABC(student.id);
-    setCurrentTab('abc');
-  };
-
-  const handleOpenReportFromIncident = (incident: ABCIncident) => {
-    const targetStudent = students.find((s) => s.id === incident.studentId);
-    if (targetStudent) {
-      setSelectedStudentForReport(targetStudent);
-      setSelectedIncidentForReport(incident);
-      setIsReportModalOpen(true);
-    }
   };
 
   // Backup & Restore
@@ -248,126 +423,27 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors">
-      {/* Institutional Header */}
-      <Header
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+    <YacitaCoachProvider teacher={teacher} initialTab="matrix">
+      <MainAppContent
         isDark={isDark}
-        onToggleTheme={toggleTheme}
+        toggleTheme={toggleTheme}
         teacher={teacher}
-        onOpenGoogleModal={() => setIsGoogleModalOpen(true)}
-        onOpenSyncModal={() => setIsDriveSyncModalOpen(true)}
-        onExportBackup={exportBackupJSON}
-        onImportBackup={handleImportBackup}
+        setTeacher={setTeacher}
+        students={students}
+        setStudents={setStudents}
+        scores={scores}
+        setScores={setScores}
+        incidents={incidents}
+        setIncidents={setIncidents}
+        handleAddStudent={handleAddStudent}
+        handleUpdateStudent={handleUpdateStudent}
+        handleDeleteStudent={handleDeleteStudent}
+        handleUpdateScore={handleUpdateScore}
+        handleUpdateNotes={handleUpdateNotes}
+        handleSetAllStudentsScore={handleSetAllStudentsScore}
+        handleSaveIncident={handleSaveIncident}
+        handleImportBackup={handleImportBackup}
       />
-
-      {/* Main Content Area with generous bottom padding so floating avatar never obstructs tables or buttons */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
-        {currentTab === 'students' && (
-          <StudentManagement
-            students={students}
-            onAddStudent={handleAddStudent}
-            onUpdateStudent={handleUpdateStudent}
-            onDeleteStudent={handleDeleteStudent}
-            onOpenTDRForStudent={handleOpenTDRForStudent}
-          />
-        )}
-
-        {currentTab === 'matrix' && (
-          <BehaviorMatrix
-            students={students}
-            scores={scores}
-            onUpdateScore={handleUpdateScore}
-            onUpdateNotes={handleUpdateNotes}
-            onSetAllStudentsScore={handleSetAllStudentsScore}
-            onOpenABCForStudent={handleOpenABCForStudent}
-          />
-        )}
-
-        {currentTab === 'abc' && (
-          <ABCFormAndTDR
-            students={students}
-            incidents={incidents}
-            teacher={teacher}
-            preselectedStudentId={preselectedStudentForABC}
-            onSaveIncident={handleSaveIncident}
-            onOpenReportModal={handleOpenReportFromIncident}
-          />
-        )}
-
-        {currentTab === 'reports' && (
-          <OfficialReportsHub
-            students={students}
-            incidents={incidents}
-            scores={scores}
-            teacher={teacher}
-            onSyncDrive={() => setIsDriveSyncModalOpen(true)}
-          />
-        )}
-      </main>
-
-      {/* Official TDR Report Modal (Pop-up preview with Word & PDF downloads) */}
-      {selectedStudentForReport && (
-        <OfficialReportModal
-          isOpen={isReportModalOpen}
-          onClose={() => setIsReportModalOpen(false)}
-          student={selectedStudentForReport}
-          incident={selectedIncidentForReport || undefined}
-          dailyScore={scores.find(
-            (sc) =>
-              sc.studentId === selectedStudentForReport.id &&
-              sc.date === (selectedIncidentForReport?.date || new Date().toISOString().split('T')[0])
-          )}
-          teacher={teacher}
-          onSyncToGoogleDrive={() => setIsDriveSyncModalOpen(true)}
-        />
-      )}
-
-      {/* Google Account & Teacher Profile Modal */}
-      <GoogleAccountModal
-        isOpen={isGoogleModalOpen}
-        onClose={() => setIsGoogleModalOpen(false)}
-        teacher={teacher}
-        onUpdateTeacher={setTeacher}
-        onSyncDrive={() => setIsDriveSyncModalOpen(true)}
-      />
-
-      {/* Google Drive & Storage Sync Modal */}
-      <GoogleDriveSyncModal
-        isOpen={isDriveSyncModalOpen}
-        onClose={() => setIsDriveSyncModalOpen(false)}
-        teacher={teacher}
-        onExportBackup={exportBackupJSON}
-        onImportBackup={handleImportBackup}
-      />
-
-      {/* Institutional Footer (Screen Only) */}
-      <footer className="no-print mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f1a38] py-4 text-center text-xs text-slate-500 dark:text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>
-            Institución Educativa Denzil Escolar · Riohacha, La Guajira · 2026
-          </span>
-          <span className="font-medium text-emerald-700 dark:text-emerald-400">
-            Progreso · Paz · Sabiduría · Cultura
-          </span>
-        </div>
-      </footer>
-
-      {/* Yacita Guía Pedagógica Interactiva y Acompañante Permanente */}
-      <YacitaGuide
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
-        teacher={teacher}
-        isDarkMode={isDark}
-        onOpenAddStudent={() => {
-          setCurrentTab('students');
-          setTimeout(() => {
-            const addBtn = document.querySelector('button[title*="Registrar"]') as HTMLButtonElement;
-            addBtn?.click();
-          }, 120);
-        }}
-      />
-    </div>
+    </YacitaCoachProvider>
   );
 }

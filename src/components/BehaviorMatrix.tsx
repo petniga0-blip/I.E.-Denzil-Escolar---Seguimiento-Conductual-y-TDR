@@ -18,6 +18,7 @@ import {
   CRITERIA_DEFINITIONS,
 } from '../types';
 import { emitYacitaEvent } from '../utils/yacitaVoice';
+import { useYacitaCoach } from '../coach';
 
 interface BehaviorMatrixProps {
   students: Student[];
@@ -36,6 +37,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
   onSetAllStudentsScore,
   onOpenABCForStudent,
 }) => {
+  const { notifyActionEvent } = useYacitaCoach();
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedGrade, setSelectedGrade] = useState<string>('todos');
@@ -101,6 +103,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
   const handleMarkAllAchieved = () => {
     const studentIds = visibleStudents.map((s) => s.id);
     onSetAllStudentsScore(selectedDate, studentIds, 3);
+    notifyActionEvent('mark_all_logrado');
     emitYacitaEvent({
       type: 'matrix-logrado',
       message: '¡Excelente trabajo con el grupo hoy, profe! Marcaste a todos los estudiantes en Logrado (3★). ¡Qué gran armonía en el salón! ⭐🎉',
@@ -109,6 +112,9 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
 
   const handleScoreChange = (student: Student, criterionKey: 'c1' | 'c2' | 'c3' | 'c4', val: ScoreLevel) => {
     onUpdateScore(student.id, selectedDate, criterionKey, val);
+    if (val === 1 || val === 2) {
+      notifyActionEvent('need_support_alert');
+    }
     if (val === 1) {
       const criterionDef = CRITERIA_DEFINITIONS.find((c) => c.id === criterionKey);
       const criterionTitle = criterionDef?.short || criterionKey;
@@ -122,7 +128,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-36">
       {/* Filters & Date Bar */}
       <div className="bg-white dark:bg-[#131f42] rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">

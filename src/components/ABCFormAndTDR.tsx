@@ -201,7 +201,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
   }, [incidents, filterStudentId]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-36">
       {/* Introduction Banner on A-B-C & Restorative Justice */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-2xl p-5 sm:p-6 shadow-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

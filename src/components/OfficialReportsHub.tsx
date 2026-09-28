@@ -24,6 +24,7 @@ import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport'
 import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
 import { generateOfficialPDF } from '../utils/pdfExport';
 import MembreteReporte from './MembreteReporte';
+import { useYacitaCoach } from '../coach';
 
 interface OfficialReportsHubProps {
   students: Student[];
@@ -41,6 +42,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
   onSyncDrive,
 }) => {
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const { notifyActionEvent } = useYacitaCoach();
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
     students.length > 0 ? students[0].id : ''
   );
@@ -120,6 +122,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
         parentSummary,
       });
       setSuccessBanner('¡Archivo Word (.docx) descargado en tamaño Carta con membrete oficial!');
+      notifyActionEvent('report_generated');
       setTimeout(() => setSuccessBanner(''), 4000);
     } catch (err) {
       console.error(err);
@@ -150,6 +153,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
       const filename = `TDR_DenzilEscolar_${currentStudent.fullName.replace(/\s+/g, '_')}_${selectedDate}.pdf`;
       pdf.save(filename);
       setSuccessBanner('¡Documento PDF oficial descargado con éxito!');
+      notifyActionEvent('report_generated');
       setTimeout(() => setSuccessBanner(''), 3500);
     } catch (err) {
       console.error(err);
@@ -167,7 +171,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-36">
       {/* Top Banner & Generation Controls */}
       <div className="no-print bg-white dark:bg-[#131f42] rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">

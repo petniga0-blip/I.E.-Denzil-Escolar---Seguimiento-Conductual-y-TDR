@@ -23,6 +23,7 @@ import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport'
 import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
 import { generateOfficialPDF } from '../utils/pdfExport';
 import MembreteReporte from './MembreteReporte';
+import { useYacitaCoach } from '../coach';
 
 interface OfficialReportModalProps {
   isOpen: boolean;
@@ -43,11 +44,23 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   teacher,
   onSyncToGoogleDrive,
 }) => {
+  const { notifyModalOpen, notifyModalClose, notifyActionEvent } = useYacitaCoach();
   const printAreaRef = useRef<HTMLDivElement>(null);
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [exportNotice, setExportNotice] = useState<string>('');
   const [parentSummary, setParentSummary] = useState<string>('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      notifyModalOpen('tdr_report');
+    }
+  }, [isOpen, notifyModalOpen]);
+
+  const handleClose = () => {
+    notifyModalClose();
+    onClose();
+  };
 
   const handleGenerateParentSummary = async () => {
     setIsGeneratingSummary(true);
@@ -92,6 +105,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
       const filename = `TDR_DenzilEscolar_${student.fullName.replace(/\s+/g, '_')}_${dateStr}.pdf`;
       pdf.save(filename);
       setExportNotice('¡Documento PDF oficial descargado con éxito!');
+      notifyActionEvent('report_generated');
       setTimeout(() => setExportNotice(''), 3500);
     } catch (err) {
       console.error(err);
@@ -112,6 +126,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         parentSummary,
       });
       setExportNotice('¡Documento Word (.docx) descargado con éxito!');
+      notifyActionEvent('report_generated');
       setTimeout(() => setExportNotice(''), 3500);
     } catch (e) {
       console.error(e);
@@ -130,6 +145,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         teacherName: teacher.name,
       });
       const filename = `TDR_DenzilEscolar_${student.fullName.replace(/\s+/g, '_')}_${dateStr}.docx`;
+      notifyActionEvent('drive_saved');
       if (onSyncToGoogleDrive) {
         onSyncToGoogleDrive(blob, filename);
       } else {
@@ -215,7 +231,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
             {/* Close */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
