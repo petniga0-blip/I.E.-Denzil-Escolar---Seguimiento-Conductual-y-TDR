@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Student, ShiftType } from '../types';
+import { emitYacitaEvent } from '../utils/yacitaVoice';
 
 interface StudentManagementProps {
   students: Student[];
@@ -76,6 +77,10 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
     setMedicalSensoryNotes('');
     setFormError('');
     setIsFormOpen(true);
+    emitYacitaEvent({
+      type: 'student-modal-opened',
+      message: '¡Vamos a registrar un estudiante, profe! Recuerda que el nombre del acudiente es obligatorio y las notas médicas/sensoriales ayudan a orientar su acompañamiento en el aula. 📝',
+    });
   };
 
   const openEditModal = (student: Student) => {
@@ -88,6 +93,10 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
     setMedicalSensoryNotes(student.medicalSensoryNotes);
     setFormError('');
     setIsFormOpen(true);
+    emitYacitaEvent({
+      type: 'student-modal-opened',
+      message: `Editando a ${student.fullName}. Puedes actualizar el acudiente, teléfono u observaciones. ✏️`,
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -111,6 +120,10 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
         contactPhone: contactPhone.trim(),
         medicalSensoryNotes: medicalSensoryNotes.trim(),
       });
+      emitYacitaEvent({
+        type: 'celebrate',
+        message: `¡Cambios de ${fullName.trim()} guardados con éxito, profe! 🎉`,
+      });
     } else {
       onAddStudent({
         fullName: fullName.trim(),
@@ -120,9 +133,15 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
         contactPhone: contactPhone.trim(),
         medicalSensoryNotes: medicalSensoryNotes.trim(),
       });
+      emitYacitaEvent({
+        type: 'student-saved',
+        studentName: fullName.trim(),
+        message: `¡Bravo, profe! Registramos a ${fullName.trim()} con éxito. 🎉 Ya puedes evaluar su convivencia en la Matriz.`,
+      });
     }
 
     setIsFormOpen(false);
+    emitYacitaEvent({ type: 'student-modal-closed' });
   };
 
   const confirmDelete = () => {
@@ -361,6 +380,12 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                   required
                   value={guardianName}
                   onChange={(e) => setGuardianName(e.target.value)}
+                  onFocus={() =>
+                    emitYacitaEvent({
+                      type: 'custom',
+                      message: 'Consejo de Yacita: El nombre del acudiente es obligatorio y esencial para las actas y reportes escolares. 👥',
+                    })
+                  }
                   placeholder="Ej. María Elena Uriana"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                 />
@@ -387,6 +412,12 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                   rows={2}
                   value={medicalSensoryNotes}
                   onChange={(e) => setMedicalSensoryNotes(e.target.value)}
+                  onFocus={() =>
+                    emitYacitaEvent({
+                      type: 'custom',
+                      message: 'Consejo de Yacita: En Observación Médica/Sensorial anota lo que ayude a acompañarlo mejor (visión, pausas motrices, sensibilidad auditiva). 💡',
+                    })
+                  }
                   placeholder="Ej. Sensibilidad al calor, necesidad de lentes, pausas motoras guiadas..."
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden resize-none"
                 />
@@ -395,7 +426,10 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
               <div className="pt-2 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    emitYacitaEvent({ type: 'student-modal-closed' });
+                  }}
                   className="px-4 py-2 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
                 >
                   Cancelar

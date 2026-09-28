@@ -17,6 +17,7 @@ import {
   ShiftType,
   CRITERIA_DEFINITIONS,
 } from '../types';
+import { emitYacitaEvent } from '../utils/yacitaVoice';
 
 interface BehaviorMatrixProps {
   students: Student[];
@@ -100,6 +101,24 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
   const handleMarkAllAchieved = () => {
     const studentIds = visibleStudents.map((s) => s.id);
     onSetAllStudentsScore(selectedDate, studentIds, 3);
+    emitYacitaEvent({
+      type: 'matrix-logrado',
+      message: '¡Excelente trabajo con el grupo hoy, profe! Marcaste a todos los estudiantes en Logrado (3★). ¡Qué gran armonía en el salón! ⭐🎉',
+    });
+  };
+
+  const handleScoreChange = (student: Student, criterionKey: 'c1' | 'c2' | 'c3' | 'c4', val: ScoreLevel) => {
+    onUpdateScore(student.id, selectedDate, criterionKey, val);
+    if (val === 1) {
+      const criterionDef = CRITERIA_DEFINITIONS.find((c) => c.id === criterionKey);
+      const criterionTitle = criterionDef?.short || criterionKey;
+      emitYacitaEvent({
+        type: 'matrix-support',
+        studentName: student.fullName,
+        criterion: criterionTitle,
+        message: `Profe, ${student.fullName} requiere acompañamiento en ${criterionTitle}. Te sugiero registrar la situación en A·B·C para acordar un pacto formativo. 💛`,
+      });
+    }
   };
 
   return (
@@ -311,7 +330,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c1}
-                            onChange={(val) => onUpdateScore(student.id, selectedDate, 'c1', val)}
+                            onChange={(val) => handleScoreChange(student, 'c1', val)}
                           />
                         </td>
 
@@ -319,7 +338,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c2}
-                            onChange={(val) => onUpdateScore(student.id, selectedDate, 'c2', val)}
+                            onChange={(val) => handleScoreChange(student, 'c2', val)}
                           />
                         </td>
 
@@ -327,7 +346,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c3}
-                            onChange={(val) => onUpdateScore(student.id, selectedDate, 'c3', val)}
+                            onChange={(val) => handleScoreChange(student, 'c3', val)}
                           />
                         </td>
 
@@ -335,7 +354,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                         <td className="py-3 px-2 text-center">
                           <ScoreToggleGroup
                             current={c4}
-                            onChange={(val) => onUpdateScore(student.id, selectedDate, 'c4', val)}
+                            onChange={(val) => handleScoreChange(student, 'c4', val)}
                           />
                         </td>
 
@@ -398,7 +417,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c1}
-                        onChange={(val) => onUpdateScore(student.id, selectedDate, 'c1', val)}
+                        onChange={(val) => handleScoreChange(student, 'c1', val)}
                       />
                     </div>
 
@@ -408,7 +427,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c2}
-                        onChange={(val) => onUpdateScore(student.id, selectedDate, 'c2', val)}
+                        onChange={(val) => handleScoreChange(student, 'c2', val)}
                       />
                     </div>
 
@@ -418,7 +437,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c3}
-                        onChange={(val) => onUpdateScore(student.id, selectedDate, 'c3', val)}
+                        onChange={(val) => handleScoreChange(student, 'c3', val)}
                       />
                     </div>
 
@@ -428,7 +447,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
                       </span>
                       <ScoreToggleGroup
                         current={c4}
-                        onChange={(val) => onUpdateScore(student.id, selectedDate, 'c4', val)}
+                        onChange={(val) => handleScoreChange(student, 'c4', val)}
                       />
                     </div>
                   </div>

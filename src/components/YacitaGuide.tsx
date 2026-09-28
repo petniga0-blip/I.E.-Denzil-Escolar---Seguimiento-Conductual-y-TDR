@@ -1,24 +1,42 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sparkles,
   Send,
   X,
   Volume2,
   VolumeX,
+  MessageSquare,
   Lightbulb,
   Check,
   Copy,
   ChevronRight,
-  MessageSquare,
+  ChevronLeft,
+  Minimize2,
+  Maximize2,
+  RotateCcw,
+  Volume1,
+  HelpCircle,
+  Award,
+  Compass,
 } from 'lucide-react';
+import yacitaImg from '../assets/yacita.png';
 import { chatWithYacita } from '../utils/yacitaAI';
+import {
+  getTeacherFirstName,
+  getTimeGreeting,
+  getWelcomeGreeting,
+  YacitaEventDetail,
+  YACITA_TOUR_STEPS,
+} from '../utils/yacitaVoice';
+import { TeacherProfile } from '../types';
 
 export interface YacitaGuideProps {
-  currentSection: string;
+  currentTab: 'students' | 'matrix' | 'abc' | 'reports';
+  onSelectTab: (tab: 'students' | 'matrix' | 'abc' | 'reports') => void;
+  teacher: TeacherProfile;
   isDarkMode: boolean;
-  hasLowScoreAlert?: boolean;
-  celebrationTrigger?: number;
+  onOpenAddStudent?: () => void;
 }
 
 interface ChatMessage {
@@ -32,589 +50,717 @@ const QUICK_QUESTIONS = [
   '¿Cómo calmar una rabieta o llanto en el aula?',
   'Sugerencias para niños con hiperactividad o fatiga motriz',
   '¿Cómo registrar un incidente sin culpabilizar al alumno?',
+  '¿Cómo exportar las actas y TDR a Word y Google Drive?',
 ];
 
-const PERIODIC_TIPS = [
-  '¿Te ayudo con el seguimiento de hoy?',
-  '¿Quieres que redacte un reporte restaurativo con Yacita?',
-  'Recuerda: la justicia restaurativa transforma la convivencia en el aula.',
-  '¿Necesitas orientación pedagógica para algún caso en particular?',
-];
+export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
+  currentTab,
+  onSelectTab,
+  teacher,
+  isDarkMode,
+  onOpenAddStudent,
+}) => {
+  const teacherFirstName = useMemo(() => getTeacherFirstName(teacher.name), [teacher.name]);
+  const timeGreeting = useMemo(() => getTimeGreeting(teacherFirstName), [teacherFirstName]);
 
-// Sparkle Particle Component for celebration
-const SparkleParticle: React.FC<{ delay: number; x: number; y: number; color: string }> = ({
-  delay,
-  x,
-  y,
-  color,
-}) => (
-  <motion.span
-    initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-    animate={{
-      opacity: [0, 1, 1, 0],
-      scale: [0, 1.3, 1, 0],
-      x,
-      y,
-      rotate: [0, 180, 360],
-    }}
-    transition={{ duration: 1.2, delay, ease: 'easeOut' }}
-    className="absolute pointer-events-none text-xs sm:text-sm font-bold z-50 select-none"
-    style={{ color }}
-  >
-    ✦
-  </motion.span>
-);
+  // UI States
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [isBubbleVisible, setIsBubbleVisible] = useState<boolean>(true);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    return localStorage.getItem('denzil_yacita_muted') === 'true';
+  });
+  const [isMobileMinimized, setIsMobileMinimized] = useState<boolean>(false);
 
-export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(
-  ({ currentSection, isDarkMode, hasLowScoreAlert = false, celebrationTrigger = 0 }) => {
-    const shouldReduceMotion = useReducedMotion();
+  // Animation reaction states
+  const [reaction, setReaction] = useState<'idle' | 'celebrate' | 'support' | 'speaking'>('idle');
+  const [reactionSparkles, setReactionSparkles] = useState<boolean>(false);
 
-    const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
-    const [inputQuery, setInputQuery] = useState<string>('');
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [copiedId, setCopiedId] = useState<string | null>(null);
-    const [speakingId, setSpeakingId] = useState<string | null>(null);
+  // Guided Tour State
+  const [isTourActive, setIsTourActive] = useState<boolean>(false);
+  const [tourStepIndex, setTourStepIndex] = useState<number>(0);
 
-    // Periodic dialogue bubble state
-    const [balloonText, setBalloonText] = useState<string | null>(null);
-    const tipIndexRef = useRef<number>(0);
+  // Bubble text & typewriter
+  const [bubbleText, setBubbleText] = useState<string>(() => getWelcomeGreeting(teacher.name));
+  const [displayedBubbleText, setDisplayedBubbleText] = useState<string>('');
+  const [isTyping, setIsTyping] = useState<boolean>(false);
 
-    // Celebration state
-    const [isCelebrating, setIsCelebrating] = useState<boolean>(false);
-    const prevCelebrationRef = useRef<number>(celebrationTrigger);
+  // Chat conversation
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'msg-welcome',
+      sender: 'yacita',
+      text: `¡Hola, profe ${teacherFirstName}! Soy Yacita, tu compañera para el seguimiento conductual y la justicia restaurativa en la I.E. Denzil Escolar. Estoy aquí para acompañarte en toda la jornada. ¿En qué te puedo apoyar hoy? 😊`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ]);
+  const [inputQuery, setInputQuery] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
 
-    const [messages, setMessages] = useState<ChatMessage[]>([
-      {
-        id: 'msg-welcome',
-        sender: 'yacita',
-        text: '¡Hola, colega! Soy Yacita, tu Asistente Pedagógica en la I.E. Denzil Escolar. Estoy aquí para ayudarte a redactar registros objetivos, sugerir consecuencias formativas y resolver cualquier duda de manejo de aula y convivencia escolar.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+  // Check tour completion status on mount
+  useEffect(() => {
+    const tourDone = localStorage.getItem('denzil_yacita_tour_done');
+    if (!tourDone) {
+      // Suggest tour in initial bubble
+      setBubbleText(`¡Hola, profe ${teacherFirstName}! Soy Yacita, tu compañera para el seguimiento conductual. ¿Empezamos con un recorrido rápido? 😊`);
+    } else {
+      setBubbleText(`¡${timeGreeting} Soy Yacita. ¿Qué deseas realizar hoy en el aula? 😊`);
+    }
+  }, [teacherFirstName, timeGreeting]);
 
-    // Trigger celebration when celebrationTrigger increments
-    useEffect(() => {
-      if (celebrationTrigger > prevCelebrationRef.current) {
-        prevCelebrationRef.current = celebrationTrigger;
-        setIsCelebrating(true);
-        const timer = setTimeout(() => setIsCelebrating(false), 2000);
-        return () => clearTimeout(timer);
+  // Typewriter effect for speech bubble
+  useEffect(() => {
+    if (!bubbleText) {
+      setDisplayedBubbleText('');
+      return;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplayedBubbleText(bubbleText);
+      return;
+    }
+
+    setIsTyping(true);
+    setDisplayedBubbleText('');
+    let idx = 0;
+    if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+
+    typingTimerRef.current = setInterval(() => {
+      idx++;
+      setDisplayedBubbleText(bubbleText.slice(0, idx));
+      if (idx >= bubbleText.length) {
+        if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+        setIsTyping(false);
       }
-      prevCelebrationRef.current = celebrationTrigger;
-    }, [celebrationTrigger]);
+    }, 22);
 
-    // Periodic speech bubble every 25 seconds, visible for 5 seconds
-    useEffect(() => {
-      if (isChatOpen) {
-        setBalloonText(null);
-        return;
-      }
+    return () => {
+      if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+    };
+  }, [bubbleText]);
 
-      const interval = setInterval(() => {
-        if (!isChatOpen && !isLoading) {
-          const tip = PERIODIC_TIPS[tipIndexRef.current % PERIODIC_TIPS.length];
-          tipIndexRef.current += 1;
-          setBalloonText(tip);
+  // Listen to application events (celebrations, student registered, 1-star alert)
+  useEffect(() => {
+    const handleYacitaEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<YacitaEventDetail>;
+      const detail = customEvent.detail;
+      if (!detail) return;
 
-          // Auto-hide after 5 seconds
-          const hideTimer = setTimeout(() => {
-            setBalloonText(null);
-          }, 5000);
-
-          return () => clearTimeout(hideTimer);
+      if (detail.type === 'celebrate' || detail.type === 'student-saved' || detail.type === 'matrix-logrado') {
+        setReaction('celebrate');
+        setReactionSparkles(true);
+        if (detail.message) {
+          setBubbleText(detail.message);
+          setIsBubbleVisible(true);
         }
-      }, 25000);
-
-      return () => clearInterval(interval);
-    }, [isChatOpen, isLoading]);
-
-    // Scroll chat to bottom
-    useEffect(() => {
-      if (isChatOpen) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        inputRef.current?.focus();
+        setTimeout(() => {
+          setReaction('idle');
+          setReactionSparkles(false);
+        }, 2500);
+      } else if (detail.type === 'support' || detail.type === 'matrix-support') {
+        setReaction('support');
+        if (detail.message) {
+          setBubbleText(detail.message);
+          setIsBubbleVisible(true);
+        }
+        setTimeout(() => setReaction('idle'), 3500);
+      } else if (detail.type === 'student-modal-opened') {
+        setBubbleText(
+          detail.message ||
+            '¡Vamos a registrar un estudiante, profe! Recuerda que el nombre del acudiente es obligatorio y las observaciones médicas/sensoriales ayudan a orientar su acompañamiento en el aula. 📝'
+        );
+        setIsBubbleVisible(true);
+      } else if (detail.type === 'student-modal-closed') {
+        // Return to tab context
+      } else if (detail.message) {
+        setBubbleText(detail.message);
+        setIsBubbleVisible(true);
       }
-    }, [isChatOpen, messages]);
+    };
 
-    const handleSendMessage = async (textToSend?: string) => {
-      const query = (textToSend || inputQuery).trim();
-      if (!query || isLoading) return;
+    window.addEventListener('yacita-event', handleYacitaEvent);
+    return () => window.removeEventListener('yacita-event', handleYacitaEvent);
+  }, []);
 
-      const userMsg: ChatMessage = {
-        id: 'usr-' + Date.now(),
-        sender: 'user',
-        text: query,
+  // Contextual help on Tab Change (when tour is not active)
+  useEffect(() => {
+    if (isTourActive) return;
+
+    if (currentTab === 'students') {
+      setBubbleText(`Pestaña Estudiantes: Aquí puedes matricular nuevos alumnos, editar sus datos y consultar números de acudientes para contacto rápido. 📋`);
+    } else if (currentTab === 'matrix') {
+      setBubbleText(`Matriz Grupal: Puedes calificar en 1 clic los 4 criterios de convivencia. Usa «Marcar Todos Logrado [✓]» para avanzar rápido y afinar detalles individuales. ⭐`);
+    } else if (currentTab === 'abc') {
+      setBubbleText(`Registro y TDR: Cuando ocurra una desregulación, documenta el Antecedente (A), la Conducta (B) y el Plan Restaurativo (C). ¡Usa mis botones de IA para redactar con amor y respeto! ✨`);
+    } else if (currentTab === 'reports') {
+      setBubbleText(`Reportes Oficiales: Genera actas con membrete institucional listas para descargar en Word (.docx) tamaño Carta o sincronizar en Google Drive. 📄`);
+    }
+  }, [currentTab, isTourActive]);
+
+  // Guided tour management
+  const startTour = useCallback(() => {
+    setIsTourActive(true);
+    setTourStepIndex(0);
+    const step = YACITA_TOUR_STEPS[0];
+    onSelectTab(step.tab);
+    setBubbleText(`${step.title}: ${step.message}\n\n${step.tip}`);
+    setIsBubbleVisible(true);
+    setIsChatOpen(false);
+  }, [onSelectTab]);
+
+  const nextTourStep = useCallback(() => {
+    if (tourStepIndex < YACITA_TOUR_STEPS.length - 1) {
+      const nextIdx = tourStepIndex + 1;
+      setTourStepIndex(nextIdx);
+      const step = YACITA_TOUR_STEPS[nextIdx];
+      onSelectTab(step.tab);
+      setBubbleText(`${step.title}: ${step.message}\n\n${step.tip}`);
+    } else {
+      // Tour completed
+      setIsTourActive(false);
+      localStorage.setItem('denzil_yacita_tour_done', 'true');
+      setReaction('celebrate');
+      setReactionSparkles(true);
+      setBubbleText(`¡Excelente, profe ${teacherFirstName}! Completamos el recorrido. Yo estaré siempre aquí en la esquina para acompañarte y resolver cualquier duda pedagógica. ¡Éxitos hoy! 🎉`);
+      setTimeout(() => {
+        setReaction('idle');
+        setReactionSparkles(false);
+      }, 3000);
+    }
+  }, [tourStepIndex, onSelectTab, teacherFirstName]);
+
+  const prevTourStep = useCallback(() => {
+    if (tourStepIndex > 0) {
+      const prevIdx = tourStepIndex - 1;
+      setTourStepIndex(prevIdx);
+      const step = YACITA_TOUR_STEPS[prevIdx];
+      onSelectTab(step.tab);
+      setBubbleText(`${step.title}: ${step.message}\n\n${step.tip}`);
+    }
+  }, [tourStepIndex, onSelectTab]);
+
+  const skipTour = useCallback(() => {
+    setIsTourActive(false);
+    localStorage.setItem('denzil_yacita_tour_done', 'true');
+    setBubbleText(`Entendido, profe ${teacherFirstName}. Siempre que desees repasar puedes pulsar «Hacer un recorrido». ¡Estoy lista para ayudarte! 😊`);
+  }, [teacherFirstName]);
+
+  // Highlight active tour element
+  useEffect(() => {
+    if (!isTourActive) {
+      document.querySelectorAll('.tour-highlight-active').forEach((el) => {
+        el.classList.remove('tour-highlight-active');
+      });
+      return;
+    }
+
+    const currentStep = YACITA_TOUR_STEPS[tourStepIndex];
+    if (currentStep) {
+      document.querySelectorAll('.tour-highlight-active').forEach((el) => {
+        el.classList.remove('tour-highlight-active');
+      });
+      const target = document.getElementById(currentStep.targetId);
+      if (target) {
+        target.classList.add('tour-highlight-active');
+      }
+    }
+
+    return () => {
+      document.querySelectorAll('.tour-highlight-active').forEach((el) => {
+        el.classList.remove('tour-highlight-active');
+      });
+    };
+  }, [isTourActive, tourStepIndex]);
+
+  // Toggle mute
+  const toggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    localStorage.setItem('denzil_yacita_muted', String(next));
+    if (next) {
+      setIsBubbleVisible(false);
+    }
+  };
+
+  // Scroll chat
+  useEffect(() => {
+    if (isChatOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      inputRef.current?.focus();
+    }
+  }, [isChatOpen, messages]);
+
+  // Handle chat submission
+  const handleSendMessage = async (textToSend?: string) => {
+    const query = (textToSend || inputQuery).trim();
+    if (!query || isLoading) return;
+
+    const userMsg: ChatMessage = {
+      id: 'usr-' + Date.now(),
+      sender: 'user',
+      text: query,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInputQuery('');
+    setIsLoading(true);
+    setReaction('speaking');
+
+    try {
+      const history = messages.map((m) => ({
+        role: m.sender === 'user' ? ('user' as const) : ('assistant' as const),
+        text: m.text,
+      }));
+
+      const reply = await chatWithYacita(query, history);
+
+      const yacitaMsg: ChatMessage = {
+        id: 'yac-' + Date.now(),
+        sender: 'yacita',
+        text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setMessages((prev) => [...prev, userMsg]);
-      setInputQuery('');
-      setIsLoading(true);
+      setMessages((prev) => [...prev, yacitaMsg]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+      setReaction('idle');
+    }
+  };
 
-      try {
-        const history = messages.map((m) => ({
-          role: m.sender === 'user' ? ('user' as const) : ('assistant' as const),
-          text: m.text,
-        }));
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-        const reply = await chatWithYacita(query, history);
+  const handleToggleSpeech = (id: string, text: string) => {
+    if (!('speechSynthesis' in window)) {
+      alert('Tu navegador no soporta síntesis de voz.');
+      return;
+    }
 
-        const yacitaMsg: ChatMessage = {
-          id: 'yac-' + Date.now(),
-          sender: 'yacita',
-          text: reply,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
+    if (speakingId === id) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+    } else {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-CO';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.05;
 
-        setMessages((prev) => [...prev, yacitaMsg]);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      utterance.onend = () => setSpeakingId(null);
+      utterance.onerror = () => setSpeakingId(null);
 
-    const handleCopy = (id: string, text: string) => {
-      navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
-    };
+      setSpeakingId(id);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
-    const handleToggleSpeech = (id: string, text: string) => {
-      if (!('speechSynthesis' in window)) {
-        alert('Tu navegador no soporta síntesis de voz.');
-        return;
-      }
+  // Determine current animation class for Yacita avatar
+  const avatarAnimationClass = useMemo(() => {
+    if (reaction === 'celebrate') return 'animate-yacita-celebrate';
+    if (reaction === 'support') return 'animate-yacita-support';
+    if (reaction === 'speaking' || isTyping) return 'animate-yacita-speaking';
+    return 'animate-yacita-idle';
+  }, [reaction, isTyping]);
 
-      if (speakingId === id) {
-        window.speechSynthesis.cancel();
-        setSpeakingId(null);
-      } else {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-CO';
-        utterance.rate = 1.0;
-        utterance.pitch = 1.05;
+  // Avoid SSR portal issues
+  if (typeof document === 'undefined') return null;
 
-        utterance.onend = () => setSpeakingId(null);
-        utterance.onerror = () => setSpeakingId(null);
+  return createPortal(
+    <div
+      role="region"
+      aria-label="Asistente Pedagógica Yacita"
+      className="no-print fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] pointer-events-none flex flex-col items-end select-none"
+    >
+      {/* SPARKLES CELEBRATION EFFECT */}
+      {reactionSparkles && (
+        <div className="absolute -top-12 -left-8 right-0 flex items-center justify-center gap-2 pointer-events-none animate-bounce text-xl">
+          <span>✨</span>
+          <span>⭐</span>
+          <span>🎉</span>
+          <span>⭐</span>
+          <span>✨</span>
+        </div>
+      )}
 
-        setSpeakingId(id);
-        window.speechSynthesis.speak(utterance);
-      }
-    };
-
-    // Calculate Yacita's main motion state
-    const getFigureAnimation = () => {
-      if (shouldReduceMotion) return { opacity: 1 };
-
-      if (isCelebrating) {
-        return {
-          y: [0, -22, 0, -12, 0],
-          scale: [1, 1.15, 1, 1.08, 1],
-          rotate: [0, -6, 6, -3, 0],
-          transition: { duration: 0.85, ease: 'easeOut' as const },
-        };
-      }
-
-      if (isLoading) {
-        return {
-          y: [0, -7, 0, -7, 0],
-          scale: [1, 1.04, 1, 1.04, 1],
-          transition: { repeat: Infinity, duration: 0.85, ease: 'easeInOut' as const },
-        };
-      }
-
-      if (hasLowScoreAlert) {
-        return {
-          y: [0, -4, 0],
-          rotate: [0, 4, 0],
-          scale: [1, 1.02, 1],
-          transition: { repeat: Infinity, duration: 3.5, ease: 'easeInOut' as const },
-        };
-      }
-
-      // Idle float & breathing
-      return {
-        y: [0, -6, 0],
-        scale: [1, 1.03, 1],
-        rotate: [-1.5, 1.5, -1.5],
-        transition: {
-          repeat: Infinity,
-          duration: 3.5,
-          ease: 'easeInOut' as const,
-        },
-      };
-    };
-
-    // Floor shadow animation matching her floating
-    const getFloorShadowAnimation = () => {
-      if (shouldReduceMotion) return { opacity: 0.35 };
-
-      if (isCelebrating) {
-        return {
-          scaleX: [1, 0.65, 1, 0.8, 1],
-          opacity: [0.35, 0.15, 0.35, 0.2, 0.35],
-          transition: { duration: 0.85, ease: 'easeOut' as const },
-        };
-      }
-
-      if (isLoading) {
-        return {
-          scaleX: [1, 0.75, 1, 0.75, 1],
-          opacity: [0.35, 0.2, 0.35, 0.2, 0.35],
-          transition: { repeat: Infinity, duration: 0.85, ease: 'easeInOut' as const },
-        };
-      }
-
-      return {
-        scaleX: [1, 0.82, 1],
-        opacity: [0.4, 0.25, 0.4],
-        transition: {
-          repeat: Infinity,
-          duration: 3.5,
-          ease: 'easeInOut' as const,
-        },
-      };
-    };
-
-    return (
-      <aside aria-label="Yacita Asistente Pedagógica" className="no-print">
-        {/* FLOATING YACITA CONTAINER (BOTTOM-RIGHT) */}
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end pointer-events-auto">
-          {/* 1. THINKING BUBBLE (While AI processes request) */}
-          <AnimatePresence>
-            {isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 5, scale: 0.9 }}
-                className="mb-2 px-3 py-1.5 rounded-full shadow-lg border border-amber-300 dark:border-amber-700 bg-white/95 dark:bg-[#0d162d]/95 backdrop-blur-md flex items-center gap-2 text-xs font-semibold text-amber-900 dark:text-amber-300"
-              >
-                <span className="flex gap-1">
-                  <motion.span
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
-                    className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"
-                  />
-                  <motion.span
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }}
-                    className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"
-                  />
-                  <motion.span
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }}
-                    className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"
-                  />
+      {/* SPEECH BUBBLE (FLOATS ABOVE / TO THE LEFT OF YACITA) */}
+      {isBubbleVisible && !isMuted && !isChatOpen && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-auto mb-3 max-w-[290px] sm:max-w-[340px] rounded-2xl bg-white dark:bg-[#0f1b3b] text-slate-900 dark:text-slate-100 p-3.5 shadow-2xl border border-amber-300/80 dark:border-amber-600/50 text-xs sm:text-[13px] leading-relaxed relative animate-in fade-in slide-in-from-bottom-3 duration-200"
+        >
+          {/* Header of bubble */}
+          <div className="flex items-center justify-between gap-2 border-b border-amber-200/60 dark:border-slate-800 pb-1.5 mb-2">
+            <div className="flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-300 text-xs">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+              <span>Yacita · Tu compañera</span>
+              {isTourActive && (
+                <span className="text-[10px] px-1.5 py-0.2 bg-amber-500 text-white rounded-full font-bold">
+                  Paso {tourStepIndex + 1}/4
                 </span>
-                <span>Yacita pensando...</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </div>
 
-          {/* 2. PERIODIC SPEECH BALLOON (Pop-in every ~25s, auto-dismiss 5s) */}
-          <AnimatePresence>
-            {balloonText && !isChatOpen && !isLoading && (
-              <motion.div
-                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.85, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: 10 }}
-                transition={{ type: 'spring', damping: 16, stiffness: 220 }}
-                onClick={() => {
-                  setBalloonText(null);
-                  setIsChatOpen(true);
-                }}
-                className="relative mb-2.5 max-w-[240px] sm:max-w-[280px] p-3 rounded-2xl shadow-xl border cursor-pointer select-none transition-all group bg-white text-slate-800 border-blue-300 dark:bg-[#0d162d] dark:text-slate-100 dark:border-blue-700"
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleMute}
+                title="Silenciar globos automáticos"
+                className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
               >
-                <div className="flex items-start justify-between gap-1.5">
-                  <div className="flex items-center gap-1.5 text-blue-900 dark:text-blue-300 text-[11px] font-bold">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>Yacita dice:</span>
-                  </div>
+                <VolumeX className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBubbleVisible(false)}
+                title="Cerrar mensaje"
+                className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Body message with typing cursor */}
+          <div className="whitespace-pre-line text-slate-800 dark:text-slate-200 font-medium">
+            {displayedBubbleText}
+            {isTyping && <span className="inline-block w-1.5 h-3 ml-0.5 bg-amber-500 animate-pulse" />}
+          </div>
+
+          {/* TOUR CONTROLS OR QUICK ACTION BUTTONS */}
+          {isTourActive ? (
+            <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-1">
+              <button
+                type="button"
+                onClick={skipTour}
+                className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1 rounded"
+              >
+                Omitir
+              </button>
+              <div className="flex items-center gap-1">
+                {tourStepIndex > 0 && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setBalloonText(null);
-                    }}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded"
-                    title="Cerrar globo"
+                    onClick={prevTourStep}
+                    className="flex items-center gap-0.5 text-[11px] font-bold px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
-                    <X className="w-3 h-3" />
+                    <ChevronLeft className="w-3 h-3" />
+                    <span>Atrás</span>
                   </button>
-                </div>
-                <p className="text-xs sm:text-[13px] font-medium leading-snug mt-1 text-slate-800 dark:text-slate-200">
-                  {balloonText}
-                </p>
-                {/* Pointer arrow to Yacita */}
-                <div className="absolute -bottom-1.5 right-8 w-3 h-3 rotate-45 border-r border-b bg-white border-blue-300 dark:bg-[#0d162d] dark:border-blue-700" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+                )}
+                <button
+                  type="button"
+                  onClick={nextTourStep}
+                  className="flex items-center gap-0.5 text-[11px] font-bold px-2.5 py-1 rounded bg-blue-700 hover:bg-blue-800 text-white shadow-xs"
+                >
+                  <span>{tourStepIndex === YACITA_TOUR_STEPS.length - 1 ? '¡Listo! 🎉' : 'Siguiente'}</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={startTour}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
+              >
+                <Compass className="w-3 h-3 text-amber-600" />
+                <span>Hacer un recorrido</span>
+              </button>
 
-          {/* 3. CELEBRATION CONFETTI / SPARKLES BURST */}
-          {isCelebrating && (
-            <div className="relative w-0 h-0 flex items-center justify-center">
-              <SparkleParticle delay={0} x={-45} y={-55} color="#f59e0b" />
-              <SparkleParticle delay={0.08} x={38} y={-60} color="#10b981" />
-              <SparkleParticle delay={0.15} x={-55} y={-25} color="#3b82f6" />
-              <SparkleParticle delay={0.2} x={50} y={-30} color="#ec4899" />
-              <SparkleParticle delay={0.25} x={0} y={-70} color="#8b5cf6" />
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectTab('students');
+                  if (onOpenAddStudent) onOpenAddStudent();
+                  else {
+                    const addBtn = document.querySelector('button[title*="Registrar"]') as HTMLElement;
+                    addBtn?.click();
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 hover:bg-blue-100 transition-colors"
+              >
+                <span>Registrar un estudiante</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectTab('matrix')}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 transition-colors"
+              >
+                <span>Evaluar hoy la Matriz</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectTab('reports')}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 transition-colors"
+              >
+                <span>Ver reportes</span>
+              </button>
             </div>
           )}
 
-          {/* 4. YACITA INTERACTIVE BUTTON WITH COMPLETE TRANSPARENT AVATAR */}
-          <div className="flex flex-col items-center">
-            <motion.button
-              type="button"
-              initial={
-                shouldReduceMotion
-                  ? { opacity: 0 }
-                  : { y: 70, opacity: 0, scale: 0.8 }
-              }
-              animate={getFigureAnimation()}
-              whileHover={
-                shouldReduceMotion
-                  ? undefined
-                  : { y: -8, scale: 1.08, rotate: 3 }
-              }
-              whileTap={
-                shouldReduceMotion
-                  ? undefined
-                  : { scale: 0.94, scaleY: 0.88, scaleX: 1.06 }
-              }
-              transition={
-                shouldReduceMotion
-                  ? { duration: 0.2 }
-                  : { type: 'spring', damping: 14, stiffness: 120 }
-              }
-              onClick={() => {
-                setBalloonText(null);
-                setIsChatOpen((prev) => !prev);
-              }}
-              title="Yacita - Asistente Pedagógica IA"
-              aria-label="Abrir Asistente Pedagógica Yacita"
-              className="relative cursor-pointer focus:outline-none select-none bg-transparent border-0 p-0 flex items-center justify-center w-[78px] h-[78px] sm:w-[98px] sm:h-[98px] group"
-              style={{ willChange: 'transform' }}
-            >
-              {/* Soft Halo / Glow Behind (Never clipping, purely atmospheric) */}
-              <div
-                className={`absolute inset-0 m-auto w-3/4 h-3/4 rounded-full pointer-events-none transition-all duration-300 ${
-                  hasLowScoreAlert
-                    ? 'bg-amber-500/40 dark:bg-amber-400/35 blur-xl animate-pulse'
-                    : isCelebrating
-                    ? 'bg-emerald-400/40 dark:bg-emerald-300/30 blur-2xl scale-125'
-                    : 'bg-amber-400/20 dark:bg-amber-400/15 blur-lg group-hover:bg-amber-400/40 group-hover:blur-xl group-hover:scale-110'
-                }`}
-              />
-
-              {/* Yacita Official Illustration: Real /yacita.png, transparent, unclipped */}
-              <img
-                src="/yacita.png"
-                alt="Yacita"
-                className="w-full h-full object-contain pointer-events-none drop-shadow-[0_8px_14px_rgba(0,0,0,0.22)] dark:drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)] select-none"
-                style={{
-                  imageRendering: 'auto',
-                  aspectRatio: '1/1',
-                }}
-                loading="eager"
-              />
-
-              {/* Subtle status indicator dot */}
-              <span className="absolute bottom-1 right-2 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-xs pointer-events-none" />
-            </motion.button>
-
-            {/* Elliptical floor shadow moving synchronously */}
-            <motion.div
-              animate={getFloorShadowAnimation()}
-              className="w-14 sm:w-16 h-2 sm:h-2.5 mx-auto rounded-[100%] bg-slate-900/25 dark:bg-black/50 blur-[2px] pointer-events-none -mt-1"
-              style={{ willChange: 'transform, opacity' }}
-            />
-          </div>
+          {/* Speech bubble pointer notch */}
+          <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white dark:bg-[#0f1b3b] border-r border-b border-amber-300/80 dark:border-amber-600/50 transform rotate-45" />
         </div>
+      )}
 
-        {/* 5. SLIDE-OUT / POP-UP CHAT WITH YACITA (SPRING ANIMATION) */}
-        <AnimatePresence>
-          {isChatOpen && (
-            <motion.aside
-              role="dialog"
-              aria-label="Panel Asistente Pedagógica Yacita"
-              initial={
-                shouldReduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.85, x: 20, y: 20 }
-              }
-              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-              exit={
-                shouldReduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.85, x: 20, y: 20 }
-              }
-              transition={{ type: 'spring', damping: 20, stiffness: 240 }}
-              className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 z-50 w-[92vw] sm:w-[420px] max-h-[78vh] flex flex-col rounded-2xl shadow-2xl border transition-colors duration-200 bg-white text-slate-900 border-slate-200 dark:bg-[#0d162d] dark:text-slate-100 dark:border-blue-900 overflow-hidden"
-              style={{ transformOrigin: 'bottom right', willChange: 'transform, opacity' }}
-            >
-              {/* CHAT HEADER */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-blue-950 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full border border-blue-300 overflow-hidden bg-white/90 p-0.5 shrink-0 shadow-xs">
-                    <img
-                      src="/yacita.png"
-                      alt="Yacita"
-                      className="w-full h-full object-contain"
-                      style={{ imageRendering: 'auto' }}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="font-bold text-sm tracking-tight text-white">Yacita</h3>
-                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
-                        IA Pedagógica Activa
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-blue-200">
-                      I.E. Denzil Escolar · Riohacha
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.speechSynthesis) window.speechSynthesis.cancel();
-                    setIsChatOpen(false);
-                  }}
-                  className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors"
-                  title="Cerrar panel"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* CHAT MESSAGES BODY */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs sm:text-[13px] bg-slate-50/70 dark:bg-[#070e20]/60">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${
-                      msg.sender === 'user' ? 'items-end' : 'items-start'
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 shadow-xs whitespace-pre-wrap leading-relaxed ${
-                        msg.sender === 'user'
-                          ? 'bg-blue-700 text-white rounded-tr-none'
-                          : 'bg-white dark:bg-[#131f42] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-tl-none'
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-
-                    {/* Footer of message */}
-                    <div className="flex items-center gap-2 mt-1 px-1 text-[10px] text-slate-400 dark:text-slate-500">
-                      <span>{msg.timestamp}</span>
-                      {msg.sender === 'yacita' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleCopy(msg.id, msg.text)}
-                            title="Copiar texto"
-                            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-0.5"
-                          >
-                            {copiedId === msg.id ? (
-                              <Check className="w-3 h-3 text-emerald-500" />
-                            ) : (
-                              <Copy className="w-3 h-3" />
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSpeech(msg.id, msg.text)}
-                            title="Escuchar"
-                            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-0.5"
-                          >
-                            {speakingId === msg.id ? (
-                              <VolumeX className="w-3 h-3 text-red-500 animate-pulse" />
-                            ) : (
-                              <Volume2 className="w-3 h-3" />
-                            )}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {isLoading && (
-                  <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 p-2 font-medium bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/50 animate-pulse">
-                    <Sparkles className="w-4 h-4 animate-spin text-amber-500" />
-                    <span>Yacita está redactando la orientación pedagógica...</span>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* QUICK SUGGESTIONS CAROUSEL */}
-              <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0d162d] shrink-0">
-                <div className="flex items-center gap-1 mb-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  <Lightbulb className="w-3 h-3 text-amber-500" />
-                  <span>Preguntas frecuentes para el aula:</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {QUICK_QUESTIONS.map((q, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSendMessage(q)}
-                      disabled={isLoading}
-                      className="text-left text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#131f42]/70 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 transition-colors flex items-center justify-between gap-1 group"
-                    >
-                      <span className="truncate">{q}</span>
-                      <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* INPUT BAR */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0d162d] flex items-center gap-2 shrink-0"
-              >
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputQuery}
-                  onChange={(e) => setInputQuery(e.target.value)}
-                  placeholder="Hazle una consulta pedagógica a Yacita..."
-                  disabled={isLoading}
-                  className="flex-1 px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#131f42] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:border-blue-500"
+      {/* CHAT PANEL SLIDE-OUT WITH YACITA */}
+      {isChatOpen && (
+        <aside
+          role="dialog"
+          aria-label="Panel de conversación con Yacita"
+          className="pointer-events-auto mb-3 w-[92vw] sm:w-[410px] max-h-[82vh] flex flex-col rounded-2xl shadow-2xl border transition-all duration-300 animate-in fade-in zoom-in-95 bg-white text-slate-900 border-slate-200 dark:bg-[#0d162d] dark:text-slate-100 dark:border-blue-900 overflow-hidden"
+        >
+          {/* HEADER */}
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200 dark:border-blue-950 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                <img
+                  src={yacitaImg}
+                  alt="Yacita"
+                  className="w-full h-full object-contain"
                 />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-bold text-sm tracking-tight text-white">Yacita</h3>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                    IA Activa
+                  </span>
+                </div>
+                <p className="text-[11px] text-blue-200">
+                  Compañera Pedagógica · I.E. Denzil Escolar
+                </p>
+              </div>
+            </div>
 
-                <button
-                  type="submit"
-                  disabled={!inputQuery.trim() || isLoading}
-                  className="p-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white shadow-xs transition-colors shrink-0"
-                  title="Enviar consulta"
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={startTour}
+                title="Iniciar recorrido guiado"
+                className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Compass className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.speechSynthesis) window.speechSynthesis.cancel();
+                  setIsChatOpen(false);
+                }}
+                className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors"
+                title="Cerrar panel"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* CHAT MESSAGES BODY */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs sm:text-[13px] bg-slate-50/70 dark:bg-[#070e20]/60 max-h-[50vh]">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${
+                  msg.sender === 'user' ? 'items-end' : 'items-start'
+                }`}
+              >
+                <div
+                  className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 shadow-xs whitespace-pre-wrap leading-relaxed ${
+                    msg.sender === 'user'
+                      ? 'bg-blue-700 text-white rounded-tr-none'
+                      : 'bg-white dark:bg-[#131f42] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-tl-none'
+                  }`}
                 >
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-      </aside>
-    );
-  }
-);
+                  {msg.text}
+                </div>
 
-YacitaGuide.displayName = 'YacitaGuide';
+                {/* Footer of message */}
+                <div className="flex items-center gap-2 mt-1 px-1 text-[10px] text-slate-400 dark:text-slate-500">
+                  <span>{msg.timestamp}</span>
+                  {msg.sender === 'yacita' && (
+                    <>
+                      <button
+                        onClick={() => handleCopy(msg.id, msg.text)}
+                        title="Copiar texto"
+                        className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-0.5 cursor-pointer"
+                      >
+                        {copiedId === msg.id ? (
+                          <Check className="w-3 h-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleSpeech(msg.id, msg.text)}
+                        title="Escuchar"
+                        className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-0.5 cursor-pointer"
+                      >
+                        {speakingId === msg.id ? (
+                          <VolumeX className="w-3 h-3 text-red-500 animate-pulse" />
+                        ) : (
+                          <Volume2 className="w-3 h-3" />
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 p-2 font-medium bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/50 animate-pulse">
+                <Sparkles className="w-4 h-4 animate-spin text-amber-500" />
+                <span>Yacita está redactando con enfoque formativo...</span>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* QUICK SUGGESTIONS CAROUSEL */}
+          <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0d162d]">
+            <div className="flex items-center justify-between mb-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              <span className="flex items-center gap-1">
+                <Lightbulb className="w-3 h-3 text-amber-500" />
+                <span>Preguntas rápidas para el aula:</span>
+              </span>
+              <button
+                type="button"
+                onClick={startTour}
+                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
+              >
+                <Compass className="w-2.5 h-2.5" />
+                <span>Reiniciar recorrido</span>
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              {QUICK_QUESTIONS.slice(0, 3).map((q, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSendMessage(q)}
+                  disabled={isLoading}
+                  className="text-left text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#131f42]/70 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 transition-colors flex items-center justify-between gap-1 group cursor-pointer"
+                >
+                  <span className="truncate">{q}</span>
+                  <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* INPUT BAR */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0d162d] flex items-center gap-2"
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputQuery}
+              onChange={(e) => setInputQuery(e.target.value)}
+              placeholder="Hazle una consulta pedagógica a Yacita..."
+              disabled={isLoading}
+              className="flex-1 px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#131f42] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:border-blue-500"
+            />
+
+            <button
+              type="submit"
+              disabled={!inputQuery.trim() || isLoading}
+              className="p-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white shadow-xs transition-colors shrink-0 cursor-pointer"
+              title="Enviar consulta"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </aside>
+      )}
+
+      {/* YACITA AVATAR - ALWAYS VISIBLE, 100-120px DESKTOP / 80-90px MOBILE */}
+      {/* NO CIRCLE CLIPPING, FULL CURLY HAIR, HANDS ON CHEEKS, RED SWEATER VISIBLE */}
+      <div className="pointer-events-auto flex flex-col items-center group relative">
+        {/* Toggle Mobile Minimize / Expand */}
+        <button
+          type="button"
+          onClick={() => setIsMobileMinimized(!isMobileMinimized)}
+          className="sm:hidden absolute -top-2 -left-2 z-10 p-1 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full border border-slate-200 dark:border-slate-700 shadow-md text-[10px]"
+          title={isMobileMinimized ? 'Expandir Yacita' : 'Minimizar Yacita'}
+        >
+          {isMobileMinimized ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+        </button>
+
+        {isMobileMinimized ? (
+          /* Mobile Minimized Badge */
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMinimized(false);
+              setIsBubbleVisible(true);
+            }}
+            className="w-12 h-12 rounded-full border-2 border-amber-400 bg-white dark:bg-[#0f1b3b] shadow-xl overflow-hidden flex items-center justify-center transition-transform hover:scale-105"
+            title="Tocar para hablar con Yacita"
+          >
+            <img src={yacitaImg} alt="Yacita" className="w-full h-full object-contain" />
+          </button>
+        ) : (
+          /* Full Avatar Representation */
+          <div className="flex flex-col items-center">
+            {/* Halo behind */}
+            <div className="absolute inset-0 rounded-full bg-amber-400/20 dark:bg-amber-400/25 blur-xl -z-10 scale-95 animate-yacita-halo" />
+
+            {/* Clickable Avatar Figure */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsChatOpen(!isChatOpen);
+                setIsBubbleVisible(false);
+              }}
+              onMouseEnter={() => {
+                if (!isBubbleVisible && !isChatOpen && !isMuted) {
+                  setIsBubbleVisible(true);
+                }
+              }}
+              className={`relative cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-hidden ${avatarAnimationClass}`}
+              title="Toca a Yacita para abrir el chat pedagógico"
+              aria-label="Abrir asistente pedagógica Yacita"
+            >
+              <img
+                src={yacitaImg}
+                alt="Yacita"
+                className="w-[84px] h-[84px] sm:w-[112px] sm:h-[112px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] select-none pointer-events-none"
+                draggable={false}
+              />
+
+              {/* Online indicator */}
+              <span className="absolute bottom-1 right-2 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-xs animate-pulse" />
+            </button>
+
+            {/* Elliptical shadow on floor */}
+            <div className="w-14 sm:w-16 h-2 bg-black/25 dark:bg-black/50 rounded-full blur-[2px] mt-[-2px] animate-yacita-shadow pointer-events-none" />
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+});

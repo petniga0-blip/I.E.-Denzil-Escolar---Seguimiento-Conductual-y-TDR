@@ -10,6 +10,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { TeacherProfile } from '../types';
+import denzilLogo from '../assets/denzil.png';
 
 interface HeaderProps {
   currentTab: 'students' | 'matrix' | 'abc' | 'reports';
@@ -44,14 +45,12 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Institutional Membrete (Zero-Overlap Rigid Box) */}
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-5 w-full md:w-auto text-center sm:text-left">
-            {/* Logo Container - Escudo Oficial 56-64px sin deformar */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 aspect-square flex items-center justify-center rounded-full bg-white border border-blue-200/90 shadow-sm drop-shadow-sm overflow-hidden p-0.5">
+            {/* Logo Container - Escudo Oficial exacto denzil.png */}
+            <div className="w-20 h-20 sm:w-[88px] sm:h-[88px] shrink-0 flex items-center justify-center">
               <img 
-                src="/denzil.png" 
+                src={denzilLogo} 
                 alt="Logo I.E. Denzil Escolar" 
-                className="w-full h-full object-contain aspect-square" 
-                style={{ objectFit: 'contain', aspectRatio: '1/1', imageRendering: 'auto' }}
-                loading="eager"
+                className="w-full h-full object-contain aspect-square drop-shadow-md" 
               />
             </div>
 
@@ -155,6 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Navigation Tabs - Accessible, finger friendly with 44px targets */}
         <nav className="mt-4 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1" aria-label="Módulos de la aplicación">
           <button
+            id="nav-tab-students"
             onClick={() => onSelectTab('students')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'students'
@@ -167,6 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            id="nav-tab-matrix"
             onClick={() => onSelectTab('matrix')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'matrix'
@@ -179,6 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            id="nav-tab-abc"
             onClick={() => onSelectTab('abc')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'abc'
@@ -191,6 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            id="nav-tab-reports"
             onClick={() => onSelectTab('reports')}
             className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all min-h-[44px] whitespace-nowrap ${
               currentTab === 'reports'

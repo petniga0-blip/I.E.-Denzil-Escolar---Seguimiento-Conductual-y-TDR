@@ -22,6 +22,7 @@ import {
 } from '../types';
 import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport';
 import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
+import denzilLogo from '../assets/denzil.png';
 
 interface OfficialReportsHubProps {
   students: Student[];
@@ -271,14 +272,12 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
           {/* HEADER INSTITUCIONAL FIDEDIGNO */}
           <div className="border-b-2 border-black pb-4 mb-5">
             <div className="flex items-center justify-between gap-4">
-              {/* Escudo con ruta estricta '/denzil.png' */}
-              <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 aspect-square flex items-center justify-center rounded-full bg-white border border-blue-200/80 shadow-xs drop-shadow-xs overflow-hidden p-0.5">
+              {/* Escudo Oficial exacto denzil.png */}
+              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 aspect-square flex items-center justify-center">
                 <img 
-                  src="/denzil.png" 
+                  src={denzilLogo} 
                   alt="Logo I.E. Denzil Escolar" 
                   className="w-full h-full object-contain aspect-square" 
-                  style={{ objectFit: 'contain', aspectRatio: '1/1', imageRendering: 'auto' }}
-                  loading="eager"
                 />
               </div>
 

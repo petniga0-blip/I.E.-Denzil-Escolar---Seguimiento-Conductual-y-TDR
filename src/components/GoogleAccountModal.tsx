@@ -13,6 +13,7 @@ import {
   HardDrive,
 } from 'lucide-react';
 import { TeacherProfile } from '../types';
+import denzilLogo from '../assets/denzil.png';
 
 interface GoogleAccountModalProps {
   isOpen: boolean;
@@ -77,11 +78,18 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
         
         {/* Header */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Perfil Docente & Cuenta Google
-            </h3>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+              <img src={denzilLogo} alt="Logo I.E. Denzil Escolar" className="w-full h-full object-contain drop-shadow-xs" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Perfil Docente & Cuenta Institucional
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                I.E. Denzil Escolar · Sede Central
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}

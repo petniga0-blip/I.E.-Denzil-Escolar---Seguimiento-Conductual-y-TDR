@@ -14,6 +14,8 @@ const PORT = process.env.PORT || 3000;
 const isProd = process.env.NODE_ENV === 'production';
 
 app.use(express.json());
+// Ensure static public files (denzil.png, yacita.png, favicon) are served reliably
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize Google GenAI if key is present
 const apiKey = process.env.GEMINI_API_KEY;
@@ -28,12 +30,23 @@ if (apiKey) {
 
 const SYSTEM_PROMPT_YACITA = `
 Eres "Yacita", la compañera pedagógica y Asistente de IA de la Institución Educativa Denzil Escolar en Riohacha, La Guajira (Colombia).
-Tu enfoque pedagógico se basa en:
-1. El modelo formativo A-B-C (Antecedente, Conducta, Consecuencia formativa).
-2. Justicia restaurativa escolar y enfoque no punitivo ni estigmatizante.
-3. Redacción objetiva, respetuosa, constructiva y formal, adecuada para el observador escolar, comités de convivencia y tarjetas de reporte familiar (TDR).
-4. Lenguaje empático, reconociendo el contexto sociocultural de La Guajira y la diversidad en el aula.
-Siempre mantén tus respuestas claras, concisas, prácticas para el docente y orientadas a la autorregulación emocional y formativa del estudiante.
+Tu personalidad es amable, motivadora, cercana, profesional y empática, con frases cortas y algún emoji ocasional. Usas un trato respetuoso y cálido ("profe", "colegas", "familia"), reconociendo el contexto sociocultural de La Guajira y la diversidad en el aula.
+
+Tus dos grandes funciones son:
+1. Orientar en el uso integral de la aplicación escolar:
+   - "1. Estudiantes": Registro de alumnos, asignación de grado y jornada, datos del acudiente (obligatorio para actas) y notas médicas/sensoriales previas.
+   - "2. Matriz Grupal": Evaluación formativa diaria en 1 clic para 4 criterios (Turnos y Escucha, Permanencia en Actividad, Instrucciones, Materiales y Aula) usando 3★ Logrado (verde), 2★ En Proceso (ámbar) y 1★ Requiere Apoyo (rojo), con el botón ágil "Marcar Todos Logrado [✓]".
+   - "3. Registro y TDR": Documentación pedagógica con el modelo A-B-C (Antecedente detonante, Conducta observable y Consecuencia restaurativa no punitiva).
+   - "4. Reportes Oficiales": Generación de actas institucionales con el escudo oficial de la I.E. Denzil Escolar, descargas en Word (.docx) tamaño Carta, impresión PDF, síntesis formativa para acudientes, y sincronización con Google Drive y copias de seguridad .json.
+
+2. Apoyo pedagógico de aula y justicia restaurativa:
+   - Proponer estrategias prácticas para calmar desregulaciones, rabietas o ansiedad sin culpar ni castigar arbitrariamente.
+   - Brindar adaptaciones para niños con necesidad de movimiento o sobrecarga sensorial.
+   - Guiar en la redacción objetiva y propositiva para observadores escolares y tarjetas de reporte familiar (TDR).
+
+Reglas críticas:
+- Nunca inventes ni muestres datos privados de estudiantes que no estén en pantalla.
+- Mantén respuestas claras, breves, prácticas y orientadas a la autorregulación.
 `;
 
 // Fallback Heuristics when AI Key is missing or offline
@@ -258,6 +271,26 @@ Responde en 2 o 3 párrafos concisos con estrategias pedagógicas prácticas, ap
 1. **Describe conductas observables, no juicios**: En lugar de "es agresivo y grosero", escribe "presentó desregulación verbal e interrumpió la explicación".
 2. **Identifica el detonante (A)**: Registra qué ocurrió justo antes (ej: cambio de actividad, ruido excesivo, cansancio).
 3. **Enfoca la consecuencia en la reparación (C)**: Plantea acuerdos y compromisos orientados a restaurar la relación con los compañeros o el cuidado de los materiales, evitando castigos arbitrarios.`;
+  } else if (lower.includes('exportar') || lower.includes('word') || lower.includes('drive') || lower.includes('descargar') || lower.includes('reporte')) {
+    reply = `Para generar y exportar tus actas y reportes:
+1. Dirígete a la pestaña **«4. Reportes Oficiales»** o pulsa el botón **«TDR»** en cualquier estudiante.
+2. Selecciona la fecha y la incidencia o evaluación del día.
+3. Puedes pulsar **«Descargar Word (.docx)»** para obtener un documento editable en tamaño Carta con membrete oficial, o **«Guardar en Google Drive»** para sincronizarlo en la nube con tu cuenta institucional.`;
+  } else if (lower.includes('estudiante') || lower.includes('matricular') || lower.includes('registrar alumno')) {
+    reply = `Para registrar o gestionar estudiantes:
+1. Ve a la pestaña **«1. Estudiantes»** y pulsa el botón azul **«Registrar Nuevo Estudiante»**.
+2. Ingresa el nombre completo, grado y jornada.
+3. El nombre del **acudiente** es obligatorio para las actas formales. En **«Observación Médica / Sensorial»** consigna recomendaciones de visión, pausas motoras o sensibilidades que ayuden a acompañar al alumno con amor.`;
+  } else if (lower.includes('matriz') || lower.includes('estrella') || lower.includes('calificar') || lower.includes('evaluar')) {
+    reply = `Uso de la Matriz Grupal en 1 Clic:
+1. En la pestaña **«2. Matriz Grupal»** evalúas los 4 criterios de convivencia diaria.
+2. Usa **3★ Logrado (verde)** para autorregulación óptima, **2★ En Proceso (ámbar)** cuando requiere recordatorios, y **1★ Requiere Apoyo (rojo)** ante desregulaciones.
+3. ¡Tip pro!: Pulsa **«Marcar Todos Logrado [✓]»** al iniciar para calificar al grupo y luego afinar solo los estudiantes que requirieron acompañamiento especial.`;
+  } else if (lower.includes('abc') || lower.includes('tdr') || lower.includes('incidencia')) {
+    reply = `Enfoque Formativo A-B-C en el aula:
+1. **[A] Antecedente**: ¿Qué detonó la situación? (ruido, cambio de clase, frustración con un ejercicio).
+2. **[B] Conducta**: Hechos observables y neutrales sin etiquetas estigmatizantes.
+3. **[C] Consecuencia / Plan Regulador**: Pausa sensorial en el rincón de la calma, diálogo restaurativo o reparación del material. ¡Usa mi botón «✨ Mejorar redacción» para pulir el texto al instante!`;
   } else {
     reply = `Como compañera pedagógica en la I.E. Denzil Escolar, te sugiero abordar esta situación desde el modelo formativo A-B-C:
 1. Identifica qué necesidad no satisfecha o estímulo ambiental está detonando la respuesta del estudiante.

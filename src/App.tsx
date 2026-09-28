@@ -63,13 +63,6 @@ export default function App() {
   const [isDriveSyncModalOpen, setIsDriveSyncModalOpen] = useState(false);
   const [preselectedStudentForABC, setPreselectedStudentForABC] = useState<string | undefined>();
 
-  const [celebrationTrigger, setCelebrationTrigger] = useState<number>(0);
-
-  // Check if any student currently has "Requiere Acompañamiento" (level 1)
-  const hasLowScoreAlert = React.useMemo(() => {
-    return scores.some((sc) => sc.c1 === 1 || sc.c2 === 1 || sc.c3 === 1 || sc.c4 === 1);
-  }, [scores]);
-
   // Synchronize localStorage
   useEffect(() => {
     saveStoredStudents(students);
@@ -191,9 +184,6 @@ export default function App() {
           notes: existing?.notes || '',
           updatedAt: new Date().toISOString(),
         });
-      }
-      if (level === 3) {
-        setCelebrationTrigger((c) => c + 1);
       }
       return Array.from(scoreMap.values());
     });
@@ -364,22 +354,19 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Yacita Guía Pedagógica Intercativa (Screen Only) */}
+      {/* Yacita Guía Pedagógica Interactiva y Acompañante Permanente */}
       <YacitaGuide
-        currentSection={
-          isGoogleModalOpen || isDriveSyncModalOpen
-            ? 'configuracion'
-            : currentTab === 'matrix'
-            ? 'matriz'
-            : currentTab === 'students'
-            ? 'estudiantes'
-            : currentTab === 'abc'
-            ? 'abc'
-            : 'reportes'
-        }
+        currentTab={currentTab}
+        onSelectTab={setCurrentTab}
+        teacher={teacher}
         isDarkMode={isDark}
-        hasLowScoreAlert={hasLowScoreAlert}
-        celebrationTrigger={celebrationTrigger}
+        onOpenAddStudent={() => {
+          setCurrentTab('students');
+          setTimeout(() => {
+            const addBtn = document.querySelector('button[title*="Registrar"]') as HTMLButtonElement;
+            addBtn?.click();
+          }, 120);
+        }}
       />
     </div>
   );

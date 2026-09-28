@@ -100,3 +100,161 @@
     padding-bottom: 2pt !important;
   }
 }
+
+/* =========================================================================
+   YACITA PEDAGOGICAL COMPANION ANIMATIONS
+   GPU-accelerated transforms and opacity with prefers-reduced-motion support
+   ========================================================================= */
+
+@keyframes yacitaIdle {
+  0%, 100% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) scale(1.015) rotate(1.2deg);
+  }
+  50% {
+    transform: translateY(-7px) scale(1.03) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) scale(1.015) rotate(-1.2deg);
+  }
+}
+
+@keyframes yacitaShadow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.28;
+  }
+  50% {
+    transform: scale(0.85);
+    opacity: 0.16;
+  }
+}
+
+@keyframes yacitaEntry {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.05);
+  }
+  80% {
+    transform: translateY(2px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes yacitaCelebrate {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    transform: translateY(-22px) scale(1.12) rotate(4deg);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.04) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-16px) scale(1.08) rotate(2deg);
+  }
+}
+
+@keyframes yacitaSupport {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(-5deg) translateY(-2px) scale(1.02);
+  }
+}
+
+@keyframes yacitaSpeaking {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+@keyframes yacitaHaloGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes yacitaTourPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.animate-yacita-idle {
+  animation: yacitaIdle 3.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-yacita-shadow {
+  animation: yacitaShadow 3.6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-yacita-entry {
+  animation: yacitaEntry 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-yacita-celebrate {
+  animation: yacitaCelebrate 1.4s ease-in-out;
+  will-change: transform;
+}
+
+.animate-yacita-support {
+  animation: yacitaSupport 2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-yacita-speaking {
+  animation: yacitaSpeaking 0.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-yacita-halo {
+  animation: yacitaHaloGlow 2.5s ease-in-out infinite;
+}
+
+.tour-highlight-active {
+  animation: yacitaTourPulse 1.8s infinite;
+  position: relative;
+  z-index: 30;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-yacita-idle,
+  .animate-yacita-shadow,
+  .animate-yacita-entry,
+  .animate-yacita-celebrate,
+  .animate-yacita-support,
+  .animate-yacita-speaking,
+  .animate-yacita-halo,
+  .tour-highlight-active {
+    animation: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+}

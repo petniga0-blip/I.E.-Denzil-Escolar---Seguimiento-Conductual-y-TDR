@@ -162,6 +162,30 @@ export async function chatWithYacita(
 2. **Identifica el antecedente**: Registra qué ocurrió antes (ruido, fatiga, cambio de actividad) para prevenir futuras desregulaciones.
 3. **Consecuencias reparadoras**: Enfoca el cierre en reparar la relación o el material, no en castigos que generen resentimiento.`;
   }
+  if (lower.includes('exportar') || lower.includes('word') || lower.includes('drive') || lower.includes('descargar') || lower.includes('reporte')) {
+    return `Para generar y exportar reportes oficiales:
+1. Ingresa a la pestaña **«4. Reportes Oficiales»** o pulsa **«TDR»** en el estudiante correspondiente.
+2. Selecciona la fecha y la incidencia o evaluación del día.
+3. Pulsa **«Descargar Word (.docx)»** para obtener el documento en tamaño Carta con el escudo oficial o **«Guardar en Google Drive»** para sincronizarlo en la nube.`;
+  }
+  if (lower.includes('estudiante') || lower.includes('matricular') || lower.includes('registrar alumno')) {
+    return `Para registrar o gestionar estudiantes:
+1. Ve a la pestaña **«1. Estudiantes»** y pulsa **«Registrar Nuevo Estudiante»**.
+2. Completa el nombre, grado y jornada. El nombre del **acudiente** es obligatorio para actas formales.
+3. En **«Observación Médica / Sensorial»** consigna notas de visión, hipersensibilidad o pausas motrices que faciliten su acompañamiento.`;
+  }
+  if (lower.includes('matriz') || lower.includes('estrella') || lower.includes('calificar') || lower.includes('evaluar')) {
+    return `Convenciones de la Matriz Grupal en 1 Clic:
+1. En **«2. Matriz Grupal»** evalúas: Turnos y Escucha (C1), Permanencia (C2), Instrucciones (C3) y Materiales (C4).
+2. Usa **3★ Logrado (verde)**, **2★ En Proceso (ámbar)** o **1★ Requiere Apoyo (rojo)**.
+3. ¡Tip!: Usa el botón **«Marcar Todos Logrado [✓]»** para calificar al grupo y luego afinar solo los estudiantes que requirieron apoyo.`;
+  }
+  if (lower.includes('abc') || lower.includes('tdr') || lower.includes('incidencia')) {
+    return `Modelo Formativo A-B-C:
+1. **[A] Antecedente**: Situación detonante (ruido, frustración con la tarea).
+2. **[B] Conducta**: Hechos observables y neutrales.
+3. **[C] Consecuencia / Plan Regulador**: Pausa sensorial, diálogo restaurativo o reparación del material. ¡Usa mi botón «✨ Mejorar redacción» para redactar sin estigmatizar!`;
+  }
 
   return `Como compañera pedagógica en la I.E. Denzil Escolar, te recomiendo analizar el detonante ambiental o emocional (A), registrar la conducta con neutralidad (B) y acompañar con una consecuencia restaurativa y formativa (C) que empodere al estudiante en su autorregulación.`;
 }
