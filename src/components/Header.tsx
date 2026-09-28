@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { TeacherProfile } from '../types';
 import denzilLogo from '../assets/denzil.png';
+import { MEMBRETE_CONFIG } from '../config/membrete';
 
 interface HeaderProps {
   currentTab: 'students' | 'matrix' | 'abc' | 'reports';
@@ -60,17 +61,17 @@ export const Header: React.FC<HeaderProps> = ({
                 República de Colombia · Distrito de Riohacha · La Guajira
               </span>
               <h1 className="text-lg sm:text-xl lg:text-2xl font-black tracking-tight text-blue-900 dark:text-blue-200 uppercase leading-snug">
-                Institución Educativa Denzil Escolar
+                {MEMBRETE_CONFIG.titulo}
               </h1>
               <p className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                Aprobado mediante Decreto # 248 del 2002 · Reg. DANE 144001003404 · NIT. 8250006500
+                {`${MEMBRETE_CONFIG.linea1} · ${MEMBRETE_CONFIG.linea2} · ${MEMBRETE_CONFIG.linea3}`}
               </p>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
                 <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                  Progreso · Paz · Sabiduría · Cultura
+                  {MEMBRETE_CONFIG.lemaCompleto}
                 </span>
                 <span aria-hidden="true" className="hidden sm:inline">·</span>
-                <span>Cra 7h No 57-44 B/ La Mano De Dios</span>
+                <span>{MEMBRETE_CONFIG.pieCentroLinea1}</span>
               </div>
             </div>
           </div>

@@ -21,7 +21,8 @@ import {
 } from '../types';
 import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport';
 import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
-import denzilLogo from '../assets/denzil.png';
+import { generateOfficialPDF } from '../utils/pdfExport';
+import MembreteReporte from './MembreteReporte';
 
 interface OfficialReportModalProps {
   isOpen: boolean;
@@ -73,6 +74,31 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    try {
+      setIsExportingPDF(true);
+      const pdf = await generateOfficialPDF({
+        student,
+        incident,
+        dailyScore,
+        teacher,
+        parentSummary,
+        reportDate: dateStr,
+      });
+      const filename = `TDR_DenzilEscolar_${student.fullName.replace(/\s+/g, '_')}_${dateStr}.pdf`;
+      pdf.save(filename);
+      setExportNotice('¡Documento PDF oficial descargado con éxito!');
+      setTimeout(() => setExportNotice(''), 3500);
+    } catch (err) {
+      console.error(err);
+      alert('Hubo un error al generar el PDF oficial.');
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const handleDownloadDocx = async () => {
@@ -148,6 +174,17 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               <span>{isGeneratingSummary ? 'Redactando...' : '🪄 Redactar informe para acudiente con Yacita'}</span>
             </button>
 
+            {/* Direct Official PDF Download */}
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isExportingPDF}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white transition-colors shadow-xs min-h-[44px]"
+              title="Descargar documento PDF oficial tamaño Carta con membrete institucional"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExportingPDF ? 'Generando PDF...' : 'Descargar PDF Oficial'}</span>
+            </button>
+
             {/* Word .docx Export */}
             <button
               onClick={handleDownloadDocx}
@@ -161,10 +198,10 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             {/* PDF (Direct Print Carta Vertical) */}
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs min-h-[44px]"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-700 hover:bg-slate-800 text-white transition-colors shadow-xs min-h-[44px]"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Descargar en PDF / Imprimir</span>
+              <span>Imprimir</span>
             </button>
 
             {/* Google Drive sync */}
@@ -206,54 +243,16 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               color: '#000000',
             }}
           >
-            {/* OFFICIAL LETTERHEAD (INSTITUCIÓN EDUCATIVA DENZIL ESCOLAR) */}
-            <div className="border-b-2 border-black pb-4 mb-5">
-              <div className="flex items-center justify-between gap-4">
-                {/* Shield - Official denzil.png */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 aspect-square flex items-center justify-center">
-                  <img 
-                    src={denzilLogo} 
-                    alt="Logo I.E. Denzil Escolar" 
-                    className="w-full h-full object-contain aspect-square" 
-                  />
-                </div>
-
-                {/* Central Letterhead Text */}
-                <div className="flex-1 text-center min-w-0">
-                  <span className="block text-[11pt] font-semibold uppercase text-slate-800 tracking-wide">
-                    República de Colombia · Departamento de La Guajira · Distrito de Riohacha
-                  </span>
-                  <h1 className="text-[13pt] sm:text-[14pt] font-bold uppercase text-blue-900 leading-tight mt-0.5">
-                    INSTITUCIÓN EDUCATIVA DENZIL ESCOLAR
-                  </h1>
-                  <p className="text-[9.5pt] text-slate-700 leading-snug mt-0.5">
-                    Aprobado mediante Decreto # 248 del 2002 · Reg. DANE 144001003404 · NIT. 8250006500
-                  </p>
-                  <p className="text-[9pt] text-slate-600 mt-0.5">
-                    Cra 7h No 57-44 Barrio La Mano De Dios · Web: www.denzilescolar.edu.co · Email: rector@denzilescolar.edu.co
-                  </p>
-                  <p className="text-[9.5pt] font-bold text-emerald-800 italic mt-0.5">
-                    Lema Institucional: Progreso · Paz · Sabiduría · Cultura
-                  </p>
-                </div>
-
-                {/* Right Tourism / Education Badge */}
-                <div className="shrink-0 hidden sm:flex flex-col items-center justify-center text-center p-1.5 border border-slate-300 rounded text-[8pt] text-slate-700 w-20">
-                  <span className="font-bold text-blue-900">CAT</span>
-                  <span className="text-[7pt] leading-tight">Colegios Amigos del Turismo</span>
-                </div>
-              </div>
-
+            <MembreteReporte>
               {/* Title of Document */}
-              <div className="text-center mt-4 pt-2 border-t border-slate-300">
-                <h2 className="text-[12pt] font-bold uppercase text-black tracking-wide">
+              <div className="text-center my-3 pb-2 border-b border-slate-300">
+                <h2 className="text-[12pt] font-bold uppercase text-black tracking-wide font-sans">
                   REGISTRO DE SEGUIMIENTO Y TARJETA DIARIA CONDUCTUAL (TDR)
                 </h2>
-                <p className="text-[10pt] italic text-slate-700">
+                <p className="text-[9.5pt] italic text-slate-700 font-serif">
                   Modelo Pedagógico Formativo A-B-C y Sistema Restaurativo Escolar
                 </p>
               </div>
-            </div>
 
             {/* 1. IDENTIFICACIÓN DEL ESTUDIANTE */}
             <div className="mb-4">
@@ -389,11 +388,10 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             </div>
 
             {/* SÍNTESIS FORMATIVA PARA LA FAMILIA / ACUDIENTE (YACITA AI) */}
-            <div className="mb-5 p-3.5 bg-amber-50/80 border border-amber-300 rounded-lg">
+            <div className={`mb-5 p-3.5 bg-amber-50/80 border border-amber-300 rounded-lg ${!parentSummary ? 'no-print' : ''}`}>
               <div className="flex items-center justify-between gap-2 border-b border-amber-300 pb-1.5 mb-2">
-                <h4 className="text-[11pt] font-bold uppercase text-amber-950 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-600 no-print" />
-                  Informe Formativo para la Familia / Acudiente:
+                <h4 className="text-[11pt] font-bold uppercase text-black font-sans">
+                  INFORME FORMATIVO PARA LA FAMILIA / ACUDIENTE
                 </h4>
                 <button
                   type="button"
@@ -405,51 +403,51 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                   <span>{parentSummary ? 'Regenerar con Yacita' : '🪄 Redactar informe para acudiente con Yacita'}</span>
                 </button>
               </div>
-              <p className="text-[10.5pt] leading-relaxed text-slate-900 italic font-normal">
+              <p className="text-[10.5pt] leading-relaxed text-slate-900 font-serif font-normal">
                 {parentSummary ? (
                   parentSummary
                 ) : (
-                  <span className="text-slate-500 not-italic no-print block py-1">
+                  <span className="text-slate-500 not-italic no-print block py-1 font-sans text-xs">
                     Pulsa el botón superior «🪄 Redactar informe para acudiente con Yacita» para que Yacita elabore una síntesis empática, clara y propositiva equilibrando los avances con los acuerdos de convivencia para la familia.
                   </span>
                 )}
               </p>
             </div>
 
-            {/* 4. COMPROMISOS Y FIRMAS (3 COLUMNAS FORMALES) */}
-            <div className="mt-8 pt-4">
-              <h3 className="print-section-title text-[12pt] font-bold uppercase text-black border-b border-black pb-1 mb-3">
-                4. COMPROMISOS Y FIRMAS FORMALES
-              </h3>
-              <p className="text-[9.5pt] italic text-slate-700 mb-8">
-                Constancia de acuerdo solidario entre el estudiante, la familia y la Institución Educativa Denzil Escolar
-                para promover la sana convivencia y el aprendizaje integral.
-              </p>
+              {/* 4. COMPROMISOS Y FIRMAS (3 COLUMNAS FORMALES) */}
+              <div className="signatures-block print-avoid-break mt-8 pt-4">
+                <h3 className="print-section-title text-[12pt] font-bold uppercase text-black border-b border-black pb-1 mb-3">
+                  4. COMPROMISOS Y FIRMAS FORMALES
+                </h3>
+                <p className="text-[9.5pt] italic text-slate-700 mb-8">
+                  Constancia de acuerdo solidario entre el estudiante, la familia y la Institución Educativa Denzil Escolar
+                  para promover la sana convivencia y el aprendizaje integral.
+                </p>
 
-              <div className="grid grid-cols-3 gap-6 text-center text-[10pt] pt-6">
-                {/* Docente */}
-                <div className="flex flex-col items-center">
-                  <div className="w-full border-t border-black mb-1"></div>
-                  <strong className="block text-[10.5pt]">{teacher.name}</strong>
-                  <span className="text-[9pt] italic text-slate-700">Firma Docente / Orientador</span>
-                </div>
+                <div className="grid grid-cols-3 gap-6 text-center text-[10pt] pt-6">
+                  {/* Docente */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-full border-t border-black mb-1"></div>
+                    <strong className="block text-[10.5pt]">{teacher.name}</strong>
+                    <span className="text-[9pt] italic text-slate-700">Firma Docente / Orientador</span>
+                  </div>
 
-                {/* Acudiente */}
-                <div className="flex flex-col items-center">
-                  <div className="w-full border-t border-black mb-1"></div>
-                  <strong className="block text-[10.5pt]">{student.guardianName}</strong>
-                  <span className="text-[9pt] italic text-slate-700">Firma Padre / Acudiente</span>
-                </div>
+                  {/* Acudiente */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-full border-t border-black mb-1"></div>
+                    <strong className="block text-[10.5pt]">{student.guardianName}</strong>
+                    <span className="text-[9pt] italic text-slate-700">Firma Padre / Acudiente</span>
+                  </div>
 
-                {/* Estudiante */}
-                <div className="flex flex-col items-center">
-                  <div className="w-full border-t border-black mb-1"></div>
-                  <strong className="block text-[10.5pt]">{student.fullName}</strong>
-                  <span className="text-[9pt] italic text-slate-700">Compromiso del Estudiante</span>
+                  {/* Estudiante */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-full border-t border-black mb-1"></div>
+                    <strong className="block text-[10.5pt]">{student.fullName}</strong>
+                    <span className="text-[9pt] italic text-slate-700">Compromiso del Estudiante</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
+            </MembreteReporte>
           </div>
         </div>
 

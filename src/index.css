@@ -99,6 +99,25 @@
     border-bottom: 1.5pt solid #000000 !important;
     padding-bottom: 2pt !important;
   }
+
+  /* Repeat letterhead and footer on all printed pages */
+  .table-header-group,
+  thead.print-header-group {
+    display: table-header-group !important;
+  }
+
+  .table-footer-group,
+  tfoot.print-footer-group {
+    display: table-footer-group !important;
+  }
+
+  /* Prevent awkward page break splits in rows and signatures */
+  tr, td, th,
+  .print-avoid-break,
+  .signatures-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
 
 /* =========================================================================

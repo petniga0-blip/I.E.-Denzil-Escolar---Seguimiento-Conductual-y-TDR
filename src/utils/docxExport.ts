@@ -14,8 +14,11 @@ import {
   Header,
   Footer,
   PageNumber,
+  ImageRun,
 } from 'docx';
 import { ABCIncident, Student, DailyCriterionScore, CRITERIA_DEFINITIONS } from '../types';
+import { ASSET_SELLO, ASSET_CAT } from '../config/assets';
+import { MEMBRETE_CONFIG } from '../config/membrete';
 
 interface ExportDocxOptions {
   student: Student;
@@ -26,8 +29,44 @@ interface ExportDocxOptions {
   parentSummary?: string;
 }
 
+async function getAssetBuffer(pathUrl: string): Promise<ArrayBuffer | null> {
+  try {
+    if (typeof window !== 'undefined') {
+      const res = await fetch(pathUrl);
+      return await res.arrayBuffer();
+    }
+    // Node environment fallback
+    const fs = await import('fs');
+    const path = await import('path');
+    const cleanedPath = pathUrl.replace(/^\//, '');
+    const candidatePaths = [
+      path.join(process.cwd(), 'public', cleanedPath),
+      path.join(process.cwd(), cleanedPath),
+    ];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        const fileBuf = fs.readFileSync(p);
+        const arrayBuf = new ArrayBuffer(fileBuf.length);
+        const view = new Uint8Array(arrayBuf);
+        for (let i = 0; i < fileBuf.length; ++i) {
+          view[i] = fileBuf[i];
+        }
+        return arrayBuf;
+      }
+    }
+  } catch (e) {
+    console.warn(`Could not load asset for docx: ${pathUrl}`, e);
+  }
+  return null;
+}
+
 export async function generateOfficialDocxBlob(options: ExportDocxOptions): Promise<Blob> {
   const { student, incident, dailyScore, teacherName = 'Lic. Marielis E. Cotes Benjumea', customDate, parentSummary } = options;
+
+  const [selloBuf, catBuf] = await Promise.all([
+    getAssetBuffer(ASSET_SELLO),
+    getAssetBuffer(ASSET_CAT),
+  ]);
 
   const dateStr = incident?.date || dailyScore?.date || customDate || new Date().toISOString().split('T')[0];
   const timeStr = incident?.time || '08:00 AM';
@@ -353,42 +392,123 @@ export async function generateOfficialDocxBlob(options: ExportDocxOptions): Prom
         headers: {
           default: new Header({
             children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { line: 240, after: 40 },
-                children: [
-                  new TextRun({
-                    text: 'INSTITUCIÓN EDUCATIVA DENZIL ESCOLAR',
-                    font: 'Arial',
-                    size: 24,
-                    bold: true,
-                    color: '1E3A8A',
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE },
+                  bottom: { style: BorderStyle.NONE },
+                  left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE },
+                  insideHorizontal: { style: BorderStyle.NONE },
+                  insideVertical: { style: BorderStyle.NONE },
+                },
+                rows: [
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        width: { size: 18, type: WidthType.PERCENTAGE },
+                        children: [
+                          selloBuf
+                            ? new Paragraph({
+                                alignment: AlignmentType.LEFT,
+                                children: [
+                                  new ImageRun({
+                                    data: selloBuf,
+                                    transformation: { width: 68, height: 68 },
+                                    type: 'png',
+                                  }),
+                                ],
+                              })
+                            : new Paragraph({ children: [] }),
+                        ],
+                      }),
+                      new TableCell({
+                        width: { size: 64, type: WidthType.PERCENTAGE },
+                        children: [
+                          new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            spacing: { line: 220, after: 30 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.titulo,
+                                font: 'Arial',
+                                size: 21,
+                                bold: true,
+                                color: '0B2A6B',
+                              }),
+                            ],
+                          }),
+                          new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            spacing: { line: 200, after: 20 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.linea1,
+                                font: 'Times New Roman',
+                                size: 16,
+                                bold: true,
+                                color: '000000',
+                              }),
+                            ],
+                          }),
+                          new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            spacing: { line: 200, after: 20 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.linea2,
+                                font: 'Times New Roman',
+                                size: 16,
+                                bold: true,
+                                color: '000000',
+                              }),
+                            ],
+                          }),
+                          new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            spacing: { line: 200, after: 20 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.linea3,
+                                font: 'Times New Roman',
+                                size: 16,
+                                bold: true,
+                                color: '000000',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      new TableCell({
+                        width: { size: 18, type: WidthType.PERCENTAGE },
+                        children: [
+                          catBuf
+                            ? new Paragraph({
+                                alignment: AlignmentType.RIGHT,
+                                children: [
+                                  new ImageRun({
+                                    data: catBuf,
+                                    transformation: { width: 68, height: 68 },
+                                    type: 'png',
+                                  }),
+                                ],
+                              })
+                            : new Paragraph({ children: [] }),
+                        ],
+                      }),
+                    ],
                   }),
                 ],
               }),
               new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { line: 220, after: 40 },
-                children: [
-                  new TextRun({
-                    text: 'Aprobado mediante Decreto # 248 del 2002 · Reg. DANE 144001003404 · NIT. 8250006500',
-                    font: 'Arial',
-                    size: 18,
-                    color: '475569',
-                  }),
-                ],
-              }),
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { line: 220, after: 80 },
-                children: [
-                  new TextRun({
-                    text: 'Riohacha – La Guajira · Cra 7h No 57-44 Barrio La Mano De Dios · Web: www.denzilescolar.edu.co',
-                    font: 'Arial',
+                spacing: { before: 40, after: 0, line: 120 },
+                border: {
+                  bottom: {
+                    style: BorderStyle.SINGLE,
                     size: 16,
-                    color: '64748B',
-                  }),
-                ],
+                    color: '000000',
+                  },
+                },
               }),
             ],
           }),
@@ -396,22 +516,85 @@ export async function generateOfficialDocxBlob(options: ExportDocxOptions): Prom
         footers: {
           default: new Footer({
             children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { line: 240 },
-                children: [
-                  new TextRun({
-                    text: 'Lema Institucional: Progreso · Paz · Sabiduría · Cultura  —  Página ',
-                    font: 'Arial',
-                    size: 18,
-                    italics: true,
-                    color: '64748B',
-                  }),
-                  new TextRun({
-                    children: [PageNumber.CURRENT],
-                    font: 'Arial',
-                    size: 18,
-                    bold: true,
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+                  bottom: { style: BorderStyle.NONE },
+                  left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE },
+                  insideHorizontal: { style: BorderStyle.NONE },
+                  insideVertical: { style: BorderStyle.NONE },
+                },
+                rows: [
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        width: { size: 20, type: WidthType.PERCENTAGE },
+                        children: [
+                          new Paragraph({
+                            alignment: AlignmentType.LEFT,
+                            spacing: { line: 200 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.pieIzquierdo[0] + '\n' + MEMBRETE_CONFIG.pieIzquierdo[1],
+                                font: 'Times New Roman',
+                                bold: true,
+                                size: 16,
+                                color: '0B2A6B',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      new TableCell({
+                        width: { size: 60, type: WidthType.PERCENTAGE },
+                        children: [
+                          new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            spacing: { line: 200 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.pieCentroLinea1,
+                                font: 'Times New Roman',
+                                size: 14,
+                                color: '000000',
+                              }),
+                            ],
+                          }),
+                          new Paragraph({
+                            alignment: AlignmentType.CENTER,
+                            spacing: { line: 200 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.pieCentroLinea2,
+                                font: 'Times New Roman',
+                                size: 14,
+                                color: '0B2A6B',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                      new TableCell({
+                        width: { size: 20, type: WidthType.PERCENTAGE },
+                        children: [
+                          new Paragraph({
+                            alignment: AlignmentType.RIGHT,
+                            spacing: { line: 200 },
+                            children: [
+                              new TextRun({
+                                text: MEMBRETE_CONFIG.pieDerecho[0] + '\n' + MEMBRETE_CONFIG.pieDerecho[1],
+                                font: 'Times New Roman',
+                                bold: true,
+                                size: 16,
+                                color: '0B2A6B',
+                              }),
+                            ],
+                          }),
+                        ],
+                      }),
+                    ],
                   }),
                 ],
               }),
@@ -480,9 +663,9 @@ export async function generateOfficialDocxBlob(options: ExportDocxOptions): Prom
             incident?.teacherObservations || 'Se acompaña al estudiante con diálogo asertivo y pautas de regulación emocional.'
           ),
 
-          // INFORME PARA LA FAMILIA (YACITA IA)
+          // INFORME PARA LA FAMILIA (FORMATIVO Y PROPOSITIVO)
           ...(parentSummary ? [
-            createSectionHeader('INFORME FORMATIVO PARA LA FAMILIA / ACUDIENTE (YACITA IA)'),
+            createSectionHeader('INFORME FORMATIVO PARA LA FAMILIA / ACUDIENTE'),
             createBodyParagraph('Síntesis Formativa para el Hogar', parentSummary),
           ] : []),
 
