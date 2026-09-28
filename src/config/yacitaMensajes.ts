@@ -266,8 +266,8 @@ export const MODAL_MESSAGES = {
   drive_sync: {
     id: 'modal_drive_sync',
     context: 'modal_drive',
-    texto: '{nombre}, respalda tus registros en Google Drive con total seguridad institucional.',
-    textoVoz: 'Profe {nombre}, respalda tus registros en Google Drive con total seguridad institucional.',
+    texto: '{nombre}, aquí puedes respaldar tus registros en Google Drive.',
+    textoVoz: '{nombre}, aquí puedes respaldar tus registros en Google Drive.',
     estado: 'senalando' as YacitaMood,
     priority: 4,
   },

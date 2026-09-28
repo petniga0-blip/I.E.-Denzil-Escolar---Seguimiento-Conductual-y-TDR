@@ -2,7 +2,11 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+    <meta name="theme-color" content="#0b2a6b" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Denzil TDR" />
     <title>I.E. Denzil Escolar - Seguimiento Conductual y TDR</title>
     <meta name="description" content="Sistema institucional de registro, seguimiento conductual en el aula y Tarjeta Diaria de Reporte (TDR) con enfoque formativo A-B-C y justicia restaurativa." />
     <meta property="og:title" content="I.E. Denzil Escolar - Seguimiento Conductual y TDR" />
@@ -10,6 +14,8 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/png" href="/denzil.png" />
+    <link rel="apple-touch-icon" href="/denzil.png" />
+    <link rel="manifest" href="/manifest.json" />
     <script>
       (function() {
         try {
@@ -20,12 +26,20 @@
             document.documentElement.classList.remove('dark');
           }
         } catch(e) {}
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').catch(function(err) {
+              console.log('SW registration note:', err);
+            });
+          });
+        }
       })();
     </script>
   </head>
-  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white dark:bg-[#0b1329] dark:text-slate-100 min-h-screen">
-    <div id="root"></div>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white dark:bg-[#0b1329] dark:text-slate-100 min-h-[100dvh] overflow-x-hidden">
+    <div id="root" class="min-h-[100dvh]"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

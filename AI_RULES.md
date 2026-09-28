@@ -19,3 +19,7 @@ El membrete de los reportes sale SOLO de src/config/membrete.ts y del módulo Me
 - La voz de Yacita es femenina, en español, con respaldo automático y nunca envía datos personales de estudiantes a servicios externos.
 - El listener global del orquestador no se elimina ni se desactiva.
 - Prohibición absoluta de SVG, canvas o dibujos para Yacita: sus expresiones son únicamente los archivos PNG oficiales ubicados en `src/assets/` y referenciados en `YACITA_IMAGE_MAP`.
+
+## 5. Paneles, Modales y Hojas Responsivas (<Sheet />)
+Prohibido fijar alturas de modales con 100vh, h-screen o px fijos. Todo modal, panel o cuadro usa <Sheet /> con cabecera fija (flex: 0 0 auto), cuerpo con scroll (flex: 1 1 auto, min-height: 0, overflow-y: auto) y pie fijo (flex: 0 0 auto). La X y el botón 'Entendido' o de acción principal NUNCA pueden quedar fuera de la pantalla. Salida siempre garantizada por 6 vías: X, botón del pie, fondo, Escape, gesto y botón Atrás del navegador.
+

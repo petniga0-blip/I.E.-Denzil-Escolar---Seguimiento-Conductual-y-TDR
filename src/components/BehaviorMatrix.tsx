@@ -19,6 +19,7 @@ import {
 } from '../types';
 import { emitYacitaEvent } from '../utils/yacitaVoice';
 import { useYacitaCoach } from '../coach';
+import { Sheet } from './Sheet';
 
 interface BehaviorMatrixProps {
   students: Student[];
@@ -42,6 +43,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedGrade, setSelectedGrade] = useState<string>('todos');
   const [selectedShift, setSelectedShift] = useState<string>('todos');
+  const [isConventionsOpen, setIsConventionsOpen] = useState(false);
 
   // Grades available
   const availableGrades = useMemo(() => {
@@ -260,27 +262,70 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
         </div>
       </div>
 
-      {/* Criteria Legend */}
-      <div className="bg-blue-50/60 dark:bg-blue-950/30 rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-900/50 text-xs text-slate-700 dark:text-slate-300">
-        <div className="font-semibold text-blue-900 dark:text-blue-200 mb-1 flex items-center gap-1.5">
-          <HelpCircle className="w-3.5 h-3.5" />
-          <span>Convenciones de Evaluación en 1 Clic:</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px]">[✓] Logrado</span>
-            <span className="text-slate-600 dark:text-slate-400">Excelente autorregulación (3 estrellas)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-amber-500 text-white font-bold text-[11px]">[~] En Proceso</span>
-            <span className="text-slate-600 dark:text-slate-400">Requiere 1 o 2 recordatorios (2 estrellas)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-red-500 text-white font-bold text-[11px]">[!] Requiere Apoyo</span>
-            <span className="text-slate-600 dark:text-slate-400">Desregulación o resistencia (1 estrella)</span>
-          </div>
-        </div>
+      {/* Criteria Legend: Collapsed in button that opens Sheet bottom sheet */}
+      <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50">
+        <button
+          type="button"
+          onClick={() => setIsConventionsOpen(true)}
+          className="flex items-center gap-2 text-xs sm:text-sm font-bold text-blue-900 dark:text-blue-200 hover:underline min-h-[44px] active:scale-95"
+        >
+          <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+          <span>¿Qué significa cada valoración? (Ver convenciones 3★, 2★, 1★)</span>
+        </button>
       </div>
+
+      <Sheet
+        isOpen={isConventionsOpen}
+        onClose={() => setIsConventionsOpen(false)}
+        sheetId="matrix_conventions_sheet"
+        size="md"
+        title="Convenciones de Valoración Formativa"
+        subtitle="I.E. Denzil Escolar · Escala de 3 Niveles"
+        icon={<HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+        footer={
+          <div className="flex items-center justify-end w-full">
+            <button
+              type="button"
+              onClick={() => setIsConventionsOpen(false)}
+              className="px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-blue-700 hover:bg-blue-800 text-white min-h-[44px] min-w-[88px] active:scale-95 transition-colors"
+            >
+              Entendido
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs">[✓] Logrado (3★)</span>
+              <strong className="text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm">Autorregulación Adecuada</strong>
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              El estudiante demuestra participación armónica, escucha activa y respeto continuo de las pautas formativas sin necesidad de recordatorios docentes.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-white font-bold text-xs">[~] En Proceso (2★)</span>
+              <strong className="text-amber-900 dark:text-amber-200 text-xs sm:text-sm">Requiere Recordatorio</strong>
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              El estudiante responde favorablemente a 1 o 2 indicaciones verbales o gestuales del docente para retomar la actividad o autorregularse.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg bg-red-500 text-white font-bold text-xs">[!] Requiere Apoyo (1★)</span>
+              <strong className="text-red-900 dark:text-red-200 text-xs sm:text-sm">Desregulación o Resistencia</strong>
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              El estudiante presenta dificultad persistente para mantener la convivencia o continuar la actividad. Se recomienda registrar la situación en la pestaña <strong>Registro y TDR (A-B-C)</strong> para pactar un acuerdo restaurativo.
+            </p>
+          </div>
+        </div>
+      </Sheet>
 
       {/* MATRIX VIEW */}
       {visibleStudents.length === 0 ? (
@@ -501,13 +546,13 @@ const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, studentNam
         data-yacita="matrix_score_3"
         data-student-name={studentName}
         title="Logrado (3 estrellas) - Cumple el criterio formativo"
-        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all min-h-[38px] sm:min-h-[34px] flex items-center justify-center gap-0.5 ${
+        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all min-h-[44px] min-w-[42px] sm:min-h-[34px] sm:min-w-[34px] flex items-center justify-center gap-0.5 active:scale-95 ${
           current === 3
             ? 'bg-emerald-600 text-white shadow-xs'
             : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
         }`}
       >
-        <span>✓</span>
+        <span className="text-sm">✓</span>
         <span className="hidden sm:inline text-[10px]">3★</span>
       </button>
 
@@ -518,13 +563,13 @@ const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, studentNam
         data-yacita="matrix_score_2"
         data-student-name={studentName}
         title="En Proceso (2 estrellas) - Requiere pauta o recordatorio"
-        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all min-h-[38px] sm:min-h-[34px] flex items-center justify-center gap-0.5 ${
+        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all min-h-[44px] min-w-[42px] sm:min-h-[34px] sm:min-w-[34px] flex items-center justify-center gap-0.5 active:scale-95 ${
           current === 2
             ? 'bg-amber-500 text-white shadow-xs'
             : 'text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300'
         }`}
       >
-        <span>~</span>
+        <span className="text-sm">~</span>
         <span className="hidden sm:inline text-[10px]">2★</span>
       </button>
 
@@ -535,13 +580,13 @@ const ScoreToggleGroup: React.FC<ScoreToggleGroupProps> = ({ current, studentNam
         data-yacita="matrix_score_1"
         data-student-name={studentName}
         title="Requiere Acompañamiento (1 estrella) - Necesita regulación"
-        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all min-h-[38px] sm:min-h-[34px] flex items-center justify-center gap-0.5 ${
+        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all min-h-[44px] min-w-[42px] sm:min-h-[34px] sm:min-w-[34px] flex items-center justify-center gap-0.5 active:scale-95 ${
           current === 1
             ? 'bg-red-500 text-white shadow-xs'
             : 'text-slate-600 dark:text-slate-400 hover:text-red-700 dark:hover:text-red-300'
         }`}
       >
-        <span>!</span>
+        <span className="text-sm">!</span>
         <span className="hidden sm:inline text-[10px]">1★</span>
       </button>
     </div>

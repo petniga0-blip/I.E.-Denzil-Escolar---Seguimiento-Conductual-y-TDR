@@ -82,6 +82,7 @@ export interface ConversationState {
   activeConsejoIndex: number;
   availableVoices: SpanishVoiceInfo[];
   debugEvents: DebugEventRecord[];
+  bubblePlacement: 'bottom' | 'top';
   // When activeModal === 'student_form', dialogue is displayed inside the form panel, so floating bubble is hidden
   isDialogueInModalPanel: boolean;
 }
@@ -105,6 +106,7 @@ export class ConversationController {
   private isTyping = false;
   private isPaused = false;
   private isDialogueInModalPanel = false;
+  private bubblePlacement: 'bottom' | 'top' = 'bottom';
 
   // Preferences
   private isVoiceEnabled = false;
@@ -232,8 +234,16 @@ export class ConversationController {
       activeConsejoIndex: this.activeConsejoIndex,
       availableVoices: this.availableVoices,
       debugEvents: this.debugEvents,
+      bubblePlacement: this.bubblePlacement,
       isDialogueInModalPanel: this.isDialogueInModalPanel,
     };
+  }
+
+  public setBubblePlacement(placement: 'bottom' | 'top'): void {
+    if (this.bubblePlacement !== placement) {
+      this.bubblePlacement = placement;
+      this.notify();
+    }
   }
 
   private notify(): void {
@@ -308,6 +318,54 @@ export class ConversationController {
       this.restartPeriodicTimer();
     }
     this.notify();
+  }
+
+  // Dedicated messages for Yacita self-controls (B: Los controles de Yacita no se comentan a sí mismos)
+  public onYacitaMenuOpened(): void {
+    this.dispatchMessage({
+      id: 'yacita_menu_open',
+      origen: 'sistema',
+      prioridad: 3,
+      texto: `Aquí activas mi voz o las sugerencias, ${this.teacherName}.`,
+      textoVoz: `Aquí activas mi voz o las sugerencias, ${this.teacherName}.`,
+      estadoYacita: 'hablando',
+    });
+  }
+
+  public onVoiceToggled(enabled: boolean): void {
+    this.setVoiceEnabled(enabled);
+    if (enabled) {
+      this.dispatchMessage({
+        id: 'yacita_voice_enabled',
+        origen: 'sistema',
+        prioridad: 4,
+        texto: '¡Listo! Ahora te hablo.',
+        textoVoz: 'Listo. Ahora te hablo.',
+        estadoYacita: 'celebrando',
+      });
+    } else {
+      // Solo texto cuando se desactiva, sin hablar
+      this.dispatchMessage({
+        id: 'yacita_voice_disabled',
+        origen: 'sistema',
+        prioridad: 4,
+        texto: 'Voz desactivada.',
+        textoVoz: '',
+        estadoYacita: 'idle',
+      });
+    }
+  }
+
+  public onPeriodicToggled(enabled: boolean): void {
+    this.setPeriodicTipsEnabled(enabled);
+    this.dispatchMessage({
+      id: enabled ? 'yacita_tips_enabled' : 'yacita_tips_disabled',
+      origen: 'sistema',
+      prioridad: 3,
+      texto: enabled ? 'Sugerencias periódicas activadas.' : 'Sugerencias periódicas desactivadas.',
+      textoVoz: '',
+      estadoYacita: enabled ? 'pulgar_arriba' : 'idle',
+    });
   }
 
   // 3. Coaching Level (Completo / Moderado / Silencioso)
@@ -614,8 +672,8 @@ export class ConversationController {
   private startAutoClose(msgSeq: number, voiceDurationMs: number): void {
     if (this.autoCloseTimer) clearTimeout(this.autoCloseTimer);
 
-    // Minimum 6 seconds total, or duration of voice + 2 seconds if greater
-    const closeDelay = Math.max(6000, voiceDurationMs + 2000);
+    // Auto-cierre: 5 s sin voz; con voz, duración de la voz + 2 s
+    const closeDelay = voiceDurationMs > 0 ? Math.max(5000, voiceDurationMs + 2000) : 5000;
 
     const checkAndClose = () => {
       this.autoCloseTimer = setTimeout(() => {
@@ -735,6 +793,13 @@ export class ConversationController {
       const isTextInput = interactiveEl.tagName === 'INPUT' || interactiveEl.tagName === 'TEXTAREA';
       if (isTextInput && event.type === 'click') {
         return;
+      }
+
+      // Collision detection: check if tapped element overlaps with bottom-right Yacita widget area
+      if (typeof window !== 'undefined') {
+        const rect = interactiveEl.getBoundingClientRect();
+        const isBottomRightZone = rect.bottom > window.innerHeight - 280 && rect.right > window.innerWidth - 340;
+        this.bubblePlacement = isBottomRightZone ? 'top' : 'bottom';
       }
 
       // If a modal is open, only respond to elements inside the modal

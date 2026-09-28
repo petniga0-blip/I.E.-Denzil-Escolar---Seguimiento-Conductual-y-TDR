@@ -233,12 +233,64 @@ export function saveStoredTeacher(profile: TeacherProfile): void {
   }
 }
 
+export const BACKUP_TIMESTAMP_KEY = 'denzil_last_backup_timestamp_v1';
+export const BACKUP_REMINDER_SESSION_KEY = 'denzil_backup_reminder_dismissed_session';
+
+export function getLastBackupTimestamp(): string | null {
+  try {
+    return localStorage.getItem(BACKUP_TIMESTAMP_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastBackupTimestamp(isoString: string = new Date().toISOString()): void {
+  try {
+    localStorage.setItem(BACKUP_TIMESTAMP_KEY, isoString);
+  } catch {
+    // ignore
+  }
+}
+
+export function formatLastBackupDate(isoString: string | null): string {
+  if (!isoString) return 'Aún sin copia';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return 'Aún sin copia';
+    return d.toLocaleString('es-CO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return 'Aún sin copia';
+  }
+}
+
+export function isBackupOlderThan7Days(): boolean {
+  const last = getLastBackupTimestamp();
+  if (!last) return true; // never backed up counts as needing a reminder
+  try {
+    const lastDate = new Date(last).getTime();
+    const now = Date.now();
+    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24);
+    return diffDays >= 7;
+  } catch {
+    return false;
+  }
+}
+
 export function exportBackupJSON(): void {
+  const nowIso = new Date().toISOString();
+  saveLastBackupTimestamp(nowIso);
   const data = {
     institution: 'INSTITUCIÓN EDUCATIVA DENZIL ESCOLAR',
     dane: '144001003404',
     nit: '8250006500',
-    exportDate: new Date().toISOString(),
+    exportDate: nowIso,
     students: getStoredStudents(),
     scores: getStoredScores(),
     incidents: getStoredIncidents(),
@@ -272,6 +324,7 @@ export function importBackupJSON(file: File, onSuccess: () => void, onError: (er
       if (parsed.teacher && typeof parsed.teacher === 'object') {
         saveStoredTeacher(parsed.teacher);
       }
+      saveLastBackupTimestamp(new Date().toISOString());
       onSuccess();
     } catch (e: any) {
       onError('El archivo seleccionado no tiene un formato JSON válido de la institución.');

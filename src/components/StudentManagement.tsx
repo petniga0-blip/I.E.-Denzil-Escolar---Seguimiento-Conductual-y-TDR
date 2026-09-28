@@ -16,6 +16,7 @@ import {
   StudentFormCoachPanel,
   StudentFormFieldKey,
 } from './StudentFormCoachPanel';
+import { Sheet } from './Sheet';
 
 interface StudentManagementProps {
   students: Student[];
@@ -345,195 +346,188 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
       </div>
 
       {/* Add / Edit Student Modal with Companion Guided Coach Panel */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-[#131f42] rounded-2xl max-w-4xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col lg:flex-row my-auto max-h-[92vh]">
-            
-            {/* Form Column */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-[#131f42]/95 backdrop-blur-xs z-10">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {editingStudent ? 'Editar Estudiante' : 'Registrar Nuevo Estudiante'}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    I.E. Denzil Escolar · Registro Pedagógico Formativo
-                  </p>
+      <Sheet
+        isOpen={isFormOpen}
+        onClose={closeFormModal}
+        sheetId={editingStudent ? 'edit_student' : 'add_student'}
+        size="4xl"
+        title={editingStudent ? 'Editar Estudiante' : 'Registrar Nuevo Estudiante'}
+        subtitle="I.E. Denzil Escolar · Registro Pedagógico Formativo"
+        icon={<UserPlus className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+        hasUnsavedChanges={fullName.trim() !== '' || guardianName.trim() !== ''}
+        unsavedChangesMessage="Hay información escrita en el formulario sin guardar. ¿Desea cancelar y salir?"
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <button
+              type="button"
+              onClick={closeFormModal}
+              data-yacita="btn_student_cancel"
+              className="px-4 py-2.5 text-xs sm:text-sm font-medium rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] active:scale-95"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="student-form-action"
+              data-yacita="btn_student_save"
+              className="px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shadow-xs min-h-[44px] active:scale-95"
+            >
+              {editingStudent ? 'Guardar Cambios' : 'Guardar Estudiante'}
+            </button>
+          </div>
+        }
+      >
+        <div className="flex flex-col lg:flex-row gap-5">
+          {/* Form Column */}
+          <div className="flex-1 min-w-0">
+            <form id="student-form-action" onSubmit={handleSubmit} className="space-y-4">
+              {formError && (
+                <div className="p-3 text-xs rounded-xl bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                  {formError}
                 </div>
-                <button
-                  onClick={closeFormModal}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  aria-label="Cerrar modal"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              )}
+
+              {/* Full Name */}
+              <div
+                className={`p-2 rounded-xl transition-all ${
+                  focusedField === 'fullName'
+                    ? 'bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-400'
+                    : ''
+                }`}
+              >
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nombre Completo del Estudiante *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onFocus={() => setFocusedField('fullName')}
+                  onChange={(e) => setFullName(e.target.value)}
+                  data-yacita="field_fullName"
+                  placeholder="Ej. Juan Andrés Pushaina Epieyú"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
+                />
               </div>
 
-              <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                {formError && (
-                  <div className="p-3 text-xs rounded-lg bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
-                    {formError}
-                  </div>
-                )}
-
-                {/* Full Name */}
+              {/* Grade & Shift */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
                   className={`p-2 rounded-xl transition-all ${
-                    focusedField === 'fullName'
-                      ? 'bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-400'
+                    focusedField === 'grade'
+                      ? 'bg-blue-50/50 dark:bg-blue-950/20 ring-2 ring-blue-400'
                       : ''
                   }`}
                 >
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Nombre Completo del Estudiante *
+                    Grado / Grupo *
                   </label>
                   <input
                     type="text"
                     required
-                    value={fullName}
-                    onFocus={() => setFocusedField('fullName')}
-                    onChange={(e) => setFullName(e.target.value)}
-                    data-yacita="field_fullName"
-                    placeholder="Ej. Juan Andrés Pushaina Epieyú"
+                    value={grade}
+                    onFocus={() => setFocusedField('grade')}
+                    onChange={(e) => setGrade(e.target.value)}
+                    data-yacita="field_grade"
+                    placeholder="Ej. 1-01, 1-02, 2-01..."
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
                   />
                 </div>
 
-                {/* Grade & Shift */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div
-                    className={`p-2 rounded-xl transition-all ${
-                      focusedField === 'grade'
-                        ? 'bg-blue-50/50 dark:bg-blue-950/20 ring-2 ring-blue-400'
-                        : ''
-                    }`}
-                  >
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Grado / Grupo *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={grade}
-                      onFocus={() => setFocusedField('grade')}
-                      onChange={(e) => setGrade(e.target.value)}
-                      data-yacita="field_grade"
-                      placeholder="Ej. 1-01, 1-02, 2-01..."
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
-                    />
-                  </div>
-
-                  <div
-                    className={`p-2 rounded-xl transition-all ${
-                      focusedField === 'shift'
-                        ? 'bg-indigo-50/50 dark:bg-indigo-950/20 ring-2 ring-indigo-400'
-                        : ''
-                    }`}
-                  >
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Jornada Escolar *
-                    </label>
-                    <select
-                      value={shift}
-                      onFocus={() => setFocusedField('shift')}
-                      onChange={(e) => setShift(e.target.value as ShiftType)}
-                      data-yacita="field_shift"
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
-                    >
-                      <option value="Mañana">Mañana</option>
-                      <option value="Tarde">Tarde</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Guardian Name */}
                 <div
                   className={`p-2 rounded-xl transition-all ${
-                    focusedField === 'guardianName'
-                      ? 'bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-400'
+                    focusedField === 'shift'
+                      ? 'bg-indigo-50/50 dark:bg-indigo-950/20 ring-2 ring-indigo-400'
                       : ''
                   }`}
                 >
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Nombre del Acudiente / Familiar *
+                    Jornada Escolar *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={guardianName}
-                    onFocus={() => setFocusedField('guardianName')}
-                    onChange={(e) => setGuardianName(e.target.value)}
-                    data-yacita="field_guardianName"
-                    placeholder="Ej. María Elena Uriana"
+                  <select
+                    value={shift}
+                    onFocus={() => setFocusedField('shift')}
+                    onChange={(e) => setShift(e.target.value as ShiftType)}
+                    data-yacita="field_shift"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div
-                  className={`p-2 rounded-xl transition-all ${
-                    focusedField === 'contactPhone'
-                      ? 'bg-teal-50/50 dark:bg-teal-950/20 ring-2 ring-teal-400'
-                      : ''
-                  }`}
-                >
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Teléfono de Contacto (Celular Colombia)
-                  </label>
-                  <input
-                    type="tel"
-                    value={contactPhone}
-                    onFocus={() => setFocusedField('contactPhone')}
-                    onChange={handlePhoneChange}
-                    data-yacita="field_contactPhone"
-                    placeholder="Ej. 315 123 4567"
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
-                  />
-                </div>
-
-                {/* Medical & Sensory Notes */}
-                <div
-                  className={`p-2 rounded-xl transition-all ${
-                    focusedField === 'medicalSensoryNotes'
-                      ? 'bg-purple-50/50 dark:bg-purple-950/20 ring-2 ring-purple-400'
-                      : ''
-                  }`}
-                >
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Observación Médica / Sensorial Previa
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={medicalSensoryNotes}
-                    onFocus={() => setFocusedField('medicalSensoryNotes')}
-                    onChange={(e) => setMedicalSensoryNotes(e.target.value)}
-                    data-yacita="field_medicalSensoryNotes"
-                    placeholder="Ej. Sensibilidad al calor, necesidad de lentes, pausas motoras guiadas..."
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden resize-none"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={closeFormModal}
-                    data-yacita="btn_student_cancel"
-                    className="px-4 py-2 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    data-yacita="btn_student_save"
-                    className="px-5 py-2 text-sm font-semibold rounded-lg bg-blue-700 hover:bg-blue-800 text-white transition-colors shadow-xs min-h-[44px]"
-                  >
-                    {editingStudent ? 'Guardar Cambios' : 'Guardar Estudiante'}
-                  </button>
+                    <option value="Mañana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                  </select>
                 </div>
-              </form>
-            </div>
+              </div>
 
-            {/* Dedicated Side/Top Companion Coach Panel (Section C) */}
+              {/* Guardian Name */}
+              <div
+                className={`p-2 rounded-xl transition-all ${
+                  focusedField === 'guardianName'
+                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-400'
+                    : ''
+                }`}
+              >
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nombre del Acudiente / Familiar *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={guardianName}
+                  onFocus={() => setFocusedField('guardianName')}
+                  onChange={(e) => setGuardianName(e.target.value)}
+                  data-yacita="field_guardianName"
+                  placeholder="Ej. María Elena Uriana"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
+                />
+              </div>
+
+              {/* Phone */}
+              <div
+                className={`p-2 rounded-xl transition-all ${
+                  focusedField === 'contactPhone'
+                    ? 'bg-teal-50/50 dark:bg-teal-950/20 ring-2 ring-teal-400'
+                    : ''
+                }`}
+              >
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Teléfono de Contacto (Celular Colombia)
+                </label>
+                <input
+                  type="tel"
+                  value={contactPhone}
+                  onFocus={() => setFocusedField('contactPhone')}
+                  onChange={handlePhoneChange}
+                  data-yacita="field_contactPhone"
+                  placeholder="Ej. 315 123 4567"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
+                />
+              </div>
+
+              {/* Medical & Sensory Notes */}
+              <div
+                className={`p-2 rounded-xl transition-all ${
+                  focusedField === 'medicalSensoryNotes'
+                    ? 'bg-purple-50/50 dark:bg-purple-950/20 ring-2 ring-purple-400'
+                    : ''
+                }`}
+              >
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Observación Médica / Sensorial Previa
+                </label>
+                <textarea
+                  rows={2}
+                  value={medicalSensoryNotes}
+                  onFocus={() => setFocusedField('medicalSensoryNotes')}
+                  onChange={(e) => setMedicalSensoryNotes(e.target.value)}
+                  data-yacita="field_medicalSensoryNotes"
+                  placeholder="Ej. Sensibilidad al calor, necesidad de lentes, pausas motoras guiadas..."
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden resize-none"
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Dedicated Side/Top Companion Coach Panel (Section C) */}
+          <div className="lg:w-80 shrink-0">
             <StudentFormCoachPanel
               focusedField={focusedField}
               fullName={fullName}
@@ -554,50 +548,56 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
             />
           </div>
         </div>
-      )}
+      </Sheet>
 
       {/* Mandatory Protected Delete Modal */}
-      {studentToDelete && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#131f42] rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center mb-4 mx-auto">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-center text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
-              Confirmación de Eliminación
-            </h3>
-
-            <p className="text-center text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-              ¿Está seguro de eliminar al estudiante{' '}
-              <strong className="text-slate-900 dark:text-slate-100 underline decoration-red-500">
-                {studentToDelete.fullName}
-              </strong>
-              ? Esta acción no se puede deshacer.
-            </p>
-
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setStudentToDelete(null);
-                  notifyModalClose();
-                }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors shadow-xs min-h-[44px]"
-              >
-                Eliminar Estudiante
-              </button>
-            </div>
+      <Sheet
+        isOpen={!!studentToDelete}
+        onClose={() => {
+          setStudentToDelete(null);
+          notifyModalClose();
+        }}
+        sheetId="delete_student_confirmation"
+        size="sm"
+        title="Confirmación de Eliminación"
+        subtitle="Acción permanente no recuperable"
+        icon={<AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />}
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <button
+              type="button"
+              onClick={() => {
+                setStudentToDelete(null);
+                notifyModalClose();
+              }}
+              className="flex-1 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] active:scale-95"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="flex-1 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors shadow-xs min-h-[44px] active:scale-95"
+            >
+              Eliminar Estudiante
+            </button>
           </div>
+        }
+      >
+        <div className="text-center py-4 space-y-3">
+          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+
+          <p className="text-center text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            ¿Está seguro de eliminar al estudiante{' '}
+            <strong className="text-slate-900 dark:text-slate-100 underline decoration-red-500 font-bold">
+              {studentToDelete?.fullName}
+            </strong>
+            ? Esta acción no se puede deshacer.
+          </p>
         </div>
-      )}
+      </Sheet>
     </div>
   );
 };

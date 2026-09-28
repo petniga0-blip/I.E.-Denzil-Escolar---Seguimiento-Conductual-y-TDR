@@ -130,7 +130,7 @@ function MainAppContent({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors">
+    <div className="min-h-[100dvh] bg-slate-100 text-slate-800 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors overflow-x-hidden">
       {/* Institutional Header */}
       <Header
         currentTab={currentTab}
@@ -144,8 +144,8 @@ function MainAppContent({
         onImportBackup={handleImportBackup}
       />
 
-      {/* Main Content Area with generous bottom padding (~140px) so floating companion never obstructs buttons/tables */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-36 sm:pb-40">
+      {/* Main Content Area with exact safe clearance for mobile fixed bars and landscape rail */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-6 landscape:pt-14 landscape:pl-20 py-4 pb-36 sm:pb-40">
         {currentTab === 'students' && (
           <StudentManagement
             students={students}

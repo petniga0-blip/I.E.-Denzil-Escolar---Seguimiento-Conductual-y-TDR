@@ -9,15 +9,15 @@ import {
   MessageSquare,
   Sparkles,
   Settings2,
-  SlidersHorizontal,
   Lightbulb,
   Bug,
   Play,
-  RotateCcw,
+  Check,
 } from 'lucide-react';
 import { useYacitaCoach } from './YacitaCoachContext';
 import { chatWithYacita } from '../utils/yacitaAI';
 import { CoachingLevel } from '../config/yacitaMensajes';
+import { Sheet } from '../components/Sheet';
 
 // Institutional PNG expressions for Yacita - Strict Anti-SVG rule
 import yacitaIdle from '../assets/idle.png';
@@ -62,9 +62,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
     coachingLevel,
     setCoachingLevel,
     isVoiceEnabled,
-    setIsVoiceEnabled,
     isPeriodicEnabled,
-    setIsPeriodicEnabled,
     currentBubble,
     currentMood,
     microFeedback,
@@ -79,6 +77,13 @@ export const YacitaFloatingAvatar: React.FC = () => {
     reopenTabHelp,
     dismissTipForever,
     isDialogueInModalPanel,
+    bubblePlacement,
+    onYacitaMenuOpened,
+    onVoiceToggled,
+    onPeriodicToggled,
+    voiceSpeed,
+    setVoiceSpeed,
+    testVoice,
     isDebugMode,
     debugStats,
     debugEvents,
@@ -86,10 +91,46 @@ export const YacitaFloatingAvatar: React.FC = () => {
     simulatePeriodicTip,
   } = useYacitaCoach();
 
-  // Menu popup state when clicking Yacita
+  // Mini-menu open state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Quick confirmation toast when toggling voice or periodic suggestions
+  // Settings sheet open state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Detect whether any Sheet is open in DOM to adjust avatar size & position
+  const [hasOpenSheet, setHasOpenSheet] = useState(false);
+  const [hasFullScreenSheet, setHasFullScreenSheet] = useState(false);
+
+  useEffect(() => {
+    const checkSheets = () => {
+      if (typeof document === 'undefined') return;
+      const openSheet = document.querySelector('[data-sheet-open="true"]');
+      setHasOpenSheet(!!openSheet);
+      const fullScreenSheet = document.querySelector('[data-sheet-fullscreen="true"]');
+      setHasFullScreenSheet(!!fullScreenSheet);
+    };
+
+    checkSheets();
+    const observer = new MutationObserver(checkSheets);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    return () => observer.disconnect();
+  }, []);
+
+  // Auto-close mini-menu after 4s of inactivity
+  useEffect(() => {
+    if (isMenuOpen) {
+      if (menuTimerRef.current) clearTimeout(menuTimerRef.current);
+      menuTimerRef.current = setTimeout(() => {
+        setIsMenuOpen(false);
+      }, 4000);
+    }
+    return () => {
+      if (menuTimerRef.current) clearTimeout(menuTimerRef.current);
+    };
+  }, [isMenuOpen]);
+
+  // Toast confirmation feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -101,19 +142,33 @@ export const YacitaFloatingAvatar: React.FC = () => {
     }, 2200);
   };
 
-  const handleToggleVoice = () => {
+  const handleAvatarClick = () => {
+    if (currentBubble) {
+      dismissBubble();
+      return;
+    }
+    const nextMenu = !isMenuOpen;
+    setIsMenuOpen(nextMenu);
+    if (nextMenu) {
+      onYacitaMenuOpened();
+    }
+  };
+
+  const handleToggleVoiceAction = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const next = !isVoiceEnabled;
-    setIsVoiceEnabled(next);
+    onVoiceToggled(next);
     showToast(next ? 'Voz activada 🔊' : 'Voz desactivada 🔇');
   };
 
-  const handleTogglePeriodic = () => {
+  const handleTogglePeriodicAction = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const next = !isPeriodicEnabled;
-    setIsPeriodicEnabled(next);
-    showToast(next ? 'Sugerencias periódicas activadas 💡' : 'Sugerencias periódicas desactivadas ⏸️');
+    onPeriodicToggled(next);
+    showToast(next ? 'Sugerencias periódicas activadas 💡' : 'Sugerencias periódicas pausadas ⏸️');
   };
 
-  // Chat modal state
+  // AI Chat modal state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -182,18 +237,19 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
   const activeImage = YACITA_IMAGE_MAP[currentMood] || yacitaIdle;
 
-  // MINIMIZED STATE: compact button, interaction bubbles still shown unless level is silencioso
+  // Decide if the floating bubble should be shown
   const shouldShowFloatingBubble =
     currentBubble &&
     !isChatOpen &&
     !isDialogueInModalPanel &&
     coachingLevel !== 'silencioso';
 
+  // MINIMIZED STATE: circular 48px avatar with authentic PNG image
   if (isMinimized) {
     return (
       <div
         data-yacita-ignore="true"
-        className="fixed bottom-4 right-4 z-[9999] no-print flex flex-col items-end gap-2"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-6 right-3 sm:right-6 z-[9990] no-print flex flex-col items-end gap-2"
       >
         {/* Floating bubble even when minimized unless coaching level is silencioso */}
         {shouldShowFloatingBubble && (
@@ -202,25 +258,25 @@ export const YacitaFloatingAvatar: React.FC = () => {
             onClick={skipVoiceAndComplete}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="mb-2 w-[280px] sm:w-[310px] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 border-2 border-amber-400 dark:border-amber-500/80 shadow-2xl animate-in zoom-in-95 duration-150 cursor-pointer"
+            className="mb-2 w-[280px] sm:w-[320px] max-w-[calc(100vw-24px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 duration-150 cursor-pointer text-xs"
             role="region"
             aria-live="polite"
           >
-            <div className="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-amber-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-amber-100 dark:border-slate-800">
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                Yacita · Coach
+                YACITA
               </span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   dismissBubble();
                 }}
-                className="p-0.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <p className="text-xs leading-relaxed font-medium">
+            <p className="leading-snug font-medium line-clamp-3">
               {displayedText}
               {(isSpeaking || isTyping) && (
                 <span className="inline-block w-1.5 h-3 ml-0.5 bg-amber-500 animate-pulse align-middle" />
@@ -231,16 +287,16 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
         <button
           onClick={() => setIsMinimized(false)}
-          className="relative w-14 h-14 rounded-full bg-white dark:bg-[#131f42] p-1 shadow-2xl border-2 border-amber-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer group"
+          className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white dark:bg-[#131f42] p-1 shadow-2xl border-2 border-amber-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer group"
           title="Expandir a Yacita (Acompañante Pedagógico)"
           aria-label="Expandir a Yacita"
         >
           <img
-            src={activeImage}
+            src={yacitaIdle}
             alt="Yacita Minimizado"
             className="w-full h-full object-contain rounded-full aspect-square"
           />
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
         </button>
       </div>
     );
@@ -250,55 +306,50 @@ export const YacitaFloatingAvatar: React.FC = () => {
     <>
       <div
         data-yacita-ignore="true"
-        className="fixed bottom-4 right-4 z-[9999] no-print flex flex-col items-end select-none pointer-events-none"
-        style={{ filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.22))' }}
+        className="fixed inset-0 pointer-events-none z-[9990] no-print"
       >
-        {/* Toast confirmation for voice / periodic settings */}
+        {/* Toast confirmation feedback for voice / periodic switches */}
         {toastMessage && (
-          <div className="pointer-events-auto mb-2 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-lg animate-in fade-in slide-in-from-bottom-1 duration-150">
+          <div className="pointer-events-auto fixed top-18 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-slate-900/95 text-white text-xs font-semibold shadow-2xl border border-amber-500/60 animate-in fade-in zoom-in-95 duration-150 z-[10000]">
             {toastMessage}
           </div>
         )}
 
-        {/* MICRO-FEEDBACK BADGE (Rapid repetitive interactions) */}
-        {microFeedback && !currentBubble && !isChatOpen && (
-          <div
-            className="pointer-events-auto mb-2 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 flex items-center gap-1.5"
-            role="status"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-            <span>{microFeedback.text}</span>
-          </div>
-        )}
-
-        {/* SPEECH BUBBLE ANCHORED ABOVE YACITA (Hidden if dialogue is inside modal panel) */}
-        {shouldShowFloatingBubble && (
+        {/* DIALOGUE BUBBLE: TOAST FORMAT WITH DYNAMIC COLLISION PLACEMENT */}
+        {shouldShowFloatingBubble && !hasFullScreenSheet && (
           <div
             data-yacita-bubble="true"
             onClick={skipVoiceAndComplete}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="pointer-events-auto relative mb-3 w-[300px] sm:w-[325px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3.5 border-2 border-amber-400 dark:border-amber-500/80 shadow-2xl animate-in zoom-in-95 fade-in duration-200 cursor-pointer"
+            className={`pointer-events-auto fixed ${
+              bubblePlacement === 'top'
+                ? 'top-16 sm:top-20 right-3 sm:right-6'
+                : hasOpenSheet
+                ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+126px)] right-3 w-[min(90vw,310px)]'
+                : 'bottom-[calc(env(safe-area-inset-bottom,0px)+150px)] landscape:bottom-[78px] sm:bottom-[120px] right-3 sm:right-6 landscape:max-w-[310px]'
+            } w-[min(92vw,340px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 sm:p-3.5 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 fade-in duration-200 cursor-pointer z-[9995]`}
             role="region"
             aria-live="polite"
-            title="Haz clic en la burbuja para completar el texto de inmediato"
+            title="Toca para completar el texto y la voz de inmediato"
           >
-            {/* Header of the bubble */}
-            <div className="flex items-center justify-between gap-1 pb-1.5 mb-1.5 border-b border-amber-100 dark:border-slate-800/80">
+            {/* Header: Clean YACITA label + animated equalizer sound bars */}
+            <div className="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-amber-100 dark:border-slate-800">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                  Yacita · Coach
+                  YACITA
                 </span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-medium">
-                  {coachingLevel === 'completo' ? 'Completo' : coachingLevel === 'moderado' ? 'Moderado' : 'Silencioso'}
-                </span>
+
+                {/* Animated Equalizer sound bars while speaking */}
                 {isSpeaking && (
-                  <span className="text-[9px] px-1 rounded-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                    🔊 Hablando
-                  </span>
+                  <div className="flex items-end gap-0.5 h-3.5 px-1">
+                    <span className="w-1 bg-emerald-500 rounded-full eq-bar-1" />
+                    <span className="w-1 bg-emerald-500 rounded-full eq-bar-2" />
+                    <span className="w-1 bg-emerald-500 rounded-full eq-bar-3" />
+                  </div>
                 )}
               </div>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -312,8 +363,8 @@ export const YacitaFloatingAvatar: React.FC = () => {
               </button>
             </div>
 
-            {/* Text synchronized with voice */}
-            <p className="text-xs sm:text-[13px] leading-relaxed font-medium text-slate-700 dark:text-slate-200 min-h-[38px]">
+            {/* Message Text (max 3 lines, text 13-14px) */}
+            <p className="text-[13px] sm:text-sm leading-snug font-medium text-slate-700 dark:text-slate-200 line-clamp-3">
               {displayedText}
               {(isSpeaking || isTyping) && (
                 <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-amber-500 animate-pulse align-middle" />
@@ -322,7 +373,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
             {/* Action buttons if available */}
             {currentBubble.botones && currentBubble.botones.length > 0 && !isSpeaking && !isTyping && (
-              <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5">
+              <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5">
                 {currentBubble.botones.map((btn) => (
                   <button
                     key={btn.actionId}
@@ -331,7 +382,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
                       btn.onClick?.();
                       dismissBubble();
                     }}
-                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors shadow-2xs ${
+                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors shadow-2xs min-h-[36px] ${
                       btn.variant === 'secondary'
                         ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
                         : 'bg-amber-500 hover:bg-amber-600 text-white'
@@ -345,14 +396,13 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
             {/* Do not show again button for periodic tips */}
             {currentBubble.allowDoNotShowAgain && !isSpeaking && !isTyping && (
-              <div className="mt-2 pt-1 flex justify-end">
+              <div className="mt-1.5 pt-1 flex justify-end">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     dismissTipForever(currentBubble.id);
                   }}
                   className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                  title="No volver a mostrar esta sugerencia"
                 >
                   <EyeOff className="w-3 h-3" />
                   <span>No volver a mostrar</span>
@@ -360,212 +410,113 @@ export const YacitaFloatingAvatar: React.FC = () => {
               </div>
             )}
 
-            {/* Speech bubble tail pointing towards Yacita */}
-            <div
-              className="absolute -bottom-2 right-12 w-4 h-4 bg-white dark:bg-[#111c3d] border-r-2 border-b-2 border-amber-400 dark:border-amber-500/80 transform rotate-45"
-              aria-hidden="true"
-            />
+            {/* Speech tail pointing to Yacita */}
+            {bubblePlacement === 'bottom' && (
+              <div
+                className="absolute -bottom-2 right-8 w-4 h-4 bg-white dark:bg-[#111c3d] border-r-2 border-b-2 border-amber-400 dark:border-amber-500 transform rotate-45"
+                aria-hidden="true"
+              />
+            )}
           </div>
         )}
 
-        {/* QUICK MENU WHEN CLICKING ON YACITA */}
+        {/* MICRO-FEEDBACK BADGE */}
+        {microFeedback && !currentBubble && !isChatOpen && (
+          <div
+            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+145px)] sm:bottom-28 right-4 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 flex items-center gap-1.5 z-[9994]"
+            role="status"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+            <span>{microFeedback.text}</span>
+          </div>
+        )}
+
+        {/* MINI-MENU (PARTE 4.C: 3 ACCIONES RÁPIDAS EN FILA HORIZONTAL + AJUSTES) */}
         {isMenuOpen && (
           <div
             data-yacita-ignore="true"
-            className="pointer-events-auto mb-3 w-[280px] bg-white dark:bg-[#0f1938] rounded-2xl p-3 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in zoom-in-95 fade-in duration-150"
+            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+150px)] landscape:bottom-[75px] sm:bottom-[115px] right-3 sm:right-6 bg-white/95 dark:bg-[#0f1938]/95 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in zoom-in-95 fade-in duration-150 z-[9994] flex items-center gap-1 max-h-[56px]"
           >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-500" />
-                Acompañamiento de Yacita
-              </span>
-              <button
-                onClick={() => setIsMenuOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {/* Quick 1: Voice Toggle */}
+            <button
+              onClick={handleToggleVoiceAction}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors min-h-[44px] ${
+                isVoiceEnabled
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isVoiceEnabled ? 'Voz activada' : 'Voz desactivada'}
+            >
+              {isVoiceEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+              <span>Voz</span>
+            </button>
 
-            {/* Coaching Level Selector (Completo / Moderado / Silencioso) */}
-            <div className="mb-3">
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
-                Nivel de interacción:
-              </label>
-              <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
-                {(['completo', 'moderado', 'silencioso'] as CoachingLevel[]).map((lvl) => (
-                  <button
-                    key={lvl}
-                    onClick={() => setCoachingLevel(lvl)}
-                    className={`py-1 text-[10px] font-semibold rounded-lg capitalize transition-colors ${
-                      coachingLevel === lvl
-                        ? 'bg-amber-500 text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {lvl}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 px-1">
-                {coachingLevel === 'completo' && 'Reacciona a clics, botones y campos.'}
-                {coachingLevel === 'moderado' && 'Solo pestañas, modales y acciones clave.'}
-                {coachingLevel === 'silencioso' && 'Solo responde cuando tú la consultas.'}
-              </p>
-            </div>
+            {/* Quick 2: Periodic Tips Toggle */}
+            <button
+              onClick={handleTogglePeriodicAction}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors min-h-[44px] ${
+                isPeriodicEnabled
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isPeriodicEnabled ? 'Sugerencias activadas' : 'Sugerencias pausadas'}
+            >
+              <Lightbulb className={`w-4 h-4 ${isPeriodicEnabled ? 'text-amber-600' : 'text-slate-400'}`} />
+              <span>Sugerencias</span>
+            </button>
 
-            {/* Screen Help & Consultation Buttons */}
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  reopenTabHelp();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors text-left"
-              >
-                <HelpCircle className="w-3.5 h-3.5 text-blue-500" />
-                <span>¿Qué hacer en esta pantalla?</span>
-              </button>
+            {/* Quick 3: Help Screen */}
+            <button
+              onClick={() => {
+                reopenTabHelp();
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors min-h-[44px]"
+              title="Ayuda de la pantalla actual"
+            >
+              <HelpCircle className="w-4 h-4 text-blue-600" />
+              <span>Ayuda</span>
+            </button>
 
-              <button
-                onClick={() => {
-                  setIsChatOpen(true);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/60 transition-colors text-left"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
-                <span>Consultorio Pedagógico AI</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsMinimized(true);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-              >
-                <Minimize2 className="w-3.5 h-3.5" />
-                <span>Minimizar avatar</span>
-              </button>
-            </div>
+            {/* Quick 4: Open Full Settings Sheet */}
+            <button
+              onClick={() => {
+                setIsSettingsOpen(true);
+                setIsMenuOpen(false);
+              }}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center border-l border-slate-200 dark:border-slate-800"
+              title="Ajustes de acompañamiento"
+              aria-label="Abrir ajustes"
+            >
+              <Settings2 className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+            </button>
           </div>
         )}
 
-        {/* YACITA AVATAR & CONTROLS ROW */}
-        <div data-yacita-avatar-area="true" className="pointer-events-auto flex items-end gap-2">
-          {/* Floating Quick Controls Toolbar with 3 Independent Controls (Parte 3) */}
-          <div className="flex flex-col gap-1.5 mb-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
-            {/* Control 1: VOICE TOGGLE (Dedicated, clear icon + tooltip + state) */}
-            <button
-              onClick={handleToggleVoice}
-              aria-pressed={isVoiceEnabled}
-              className={`p-1.5 rounded-lg transition-colors relative group ${
-                isVoiceEnabled
-                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
-                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-              title={isVoiceEnabled ? 'Voz: Activada (haz clic para desactivar)' : 'Voz: Desactivada (haz clic para activar)'}
-              aria-label={isVoiceEnabled ? 'Desactivar voz de Yacita' : 'Activar voz de Yacita'}
-            >
-              {isVoiceEnabled ? (
-                <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <VolumeX className="w-4 h-4 text-slate-400" />
-              )}
-              {isVoiceEnabled && (
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-              )}
-            </button>
-
-            {/* Control 2: PERIODIC SUGGESTIONS TOGGLE (Independent, affects ONLY 45-90s tips) */}
-            <button
-              onClick={handleTogglePeriodic}
-              aria-pressed={isPeriodicEnabled}
-              className={`p-1.5 rounded-lg transition-colors relative group ${
-                isPeriodicEnabled
-                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
-                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-              title={
-                isPeriodicEnabled
-                  ? 'Sugerencias periódicas: Activadas (haz clic para pausar)'
-                  : 'Sugerencias periódicas: Desactivadas (haz clic para reactivar)'
-              }
-              aria-label={
-                isPeriodicEnabled
-                  ? 'Desactivar sugerencias periódicas'
-                  : 'Activar sugerencias periódicas'
-              }
-            >
-              <Lightbulb
-                className={`w-4 h-4 ${
-                  isPeriodicEnabled
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-slate-400'
-                }`}
-              />
-              {isPeriodicEnabled && (
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-amber-500 rounded-full" />
-              )}
-            </button>
-
-            {/* Screen Help */}
-            <button
-              onClick={reopenTabHelp}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors"
-              title="¿Qué puedo hacer en esta pantalla?"
-              aria-label="Ayuda de la pantalla actual"
-            >
-              <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </button>
-
-            {/* AI Consultation Chat */}
-            <button
-              onClick={() => setIsChatOpen(true)}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/60 transition-colors"
-              title="Preguntar a Yacita (Consultorio Pedagógico)"
-              aria-label="Consultar a Yacita"
-            >
-              <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            </button>
-
-            {/* Control 3: Settings Menu for Coaching Level */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="Nivel de acompañamiento y opciones"
-              aria-label="Opciones de Yacita"
-            >
-              <Settings2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-
-            {/* Minimize Avatar */}
-            <button
-              onClick={() => setIsMinimized(true)}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="Minimizar a Yacita"
-              aria-label="Minimizar avatar"
-            >
-              <Minimize2 className="w-4 h-4 text-slate-500" />
-            </button>
-          </div>
-
-          {/* Main Yacita Avatar Button (Authentic PNG with crossfade without jumps) */}
+        {/* YACITA AVATAR BUTTON (Reduced to 56–64px when panel open, 72–84px vertical, 56–64px landscape) */}
+        {/* If full screen sheet is open, hide floating avatar so header Help button takes over */}
+        <div
+          data-yacita-avatar-area="true"
+          className={`pointer-events-auto fixed ${
+            hasFullScreenSheet
+              ? 'hidden'
+              : hasOpenSheet
+              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+64px)] right-3'
+              : 'bottom-[calc(env(safe-area-inset-bottom,0px)+70px)] landscape:bottom-3 sm:bottom-6 right-3 sm:right-6'
+          } flex items-end z-[9990]`}
+        >
           <button
-            onClick={() => {
-              if (currentBubble) {
-                dismissBubble();
-              } else {
-                setIsMenuOpen((prev) => !prev);
-              }
-            }}
-            className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer focus:outline-hidden group"
-            title="Yacita: Acompañante Pedagógico (haz clic para menú de opciones)"
-            aria-label="Yacita"
+            onClick={handleAvatarClick}
+            className={`relative ${
+              hasOpenSheet
+                ? 'w-[58px] h-[58px]'
+                : 'w-[74px] h-[74px] landscape:w-[58px] landscape:h-[58px] sm:w-[84px] sm:h-[84px]'
+            } shrink-0 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-hidden group`}
+            title="Yacita: Acompañante Pedagógico (toca para ver opciones)"
+            aria-label="Yacita Acompañante Pedagógico"
           >
             {/* Subtle glow circle */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400/20 via-blue-500/10 to-emerald-400/20 blur-md group-hover:blur-lg transition-all" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400/25 via-blue-500/15 to-emerald-400/25 blur-md group-hover:blur-lg transition-all" />
 
             {/* Authentic Institutional PNG Expression - STRICTLY NO SVG */}
             <img
@@ -575,7 +526,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
               loading="eager"
             />
 
-            {/* Speaking/Typing indicator dot */}
+            {/* Speaking/Typing active indicator dot */}
             {(isSpeaking || isTyping) && (
               <span className="absolute bottom-1 right-2 z-20 flex h-3.5 w-3.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
@@ -586,103 +537,254 @@ export const YacitaFloatingAvatar: React.FC = () => {
         </div>
       </div>
 
-      {/* PEDAGOGICAL CHAT MODAL */}
-      {isChatOpen && (
-        <div
-          data-yacita-ignore="true"
-          className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
-        >
-          <div className="bg-white dark:bg-[#111c3d] rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col h-[580px] max-h-[92vh] animate-in zoom-in-95 fade-in duration-200">
-            {/* Chat Header */}
-            <div className="p-4 bg-gradient-to-r from-amber-500 via-amber-600 to-blue-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 p-1 flex items-center justify-center">
-                  <img src={yacitaIdle} alt="Yacita" className="w-full h-full object-contain aspect-square" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold leading-tight">Consultorio con Yacita</h3>
-                  <p className="text-[11px] text-amber-100">Orientación formativa y justicia restaurativa</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* FULL SETTINGS BOTTOM SHEET / MODAL (PARTE 4.C) */}
+      <Sheet
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        sheetId="yacita_settings"
+        size="sm"
+        title="Ajustes de Yacita"
+        subtitle="Acompañante pedagógico y voz"
+        icon={<Settings2 className="w-5 h-5 text-amber-500" />}
+        footer={
+          <div className="flex items-center justify-end w-full">
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(false)}
+              className="px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 min-h-[44px] min-w-[88px] active:scale-95 transition-colors"
+            >
+              Listo
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* 1. Voice Setting */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+            <div className="space-y-0.5">
+              <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Volume2 className="w-4 h-4 text-emerald-600" />
+                Voz de Yacita
+              </span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                {isVoiceEnabled ? 'Activada (te lee los mensajes)' : 'Desactivada (solo lectura visual)'}
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={() => handleToggleVoiceAction()}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-colors min-h-[44px] active:scale-95 ${
+                isVoiceEnabled
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              {isVoiceEnabled ? 'Activada' : 'Desactivada'}
+            </button>
+          </div>
 
-            {/* Messages Body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-[#0c152e]">
-              {chatMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl p-3 text-xs sm:text-sm leading-relaxed ${
-                      msg.sender === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-xs'
-                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-200 dark:border-slate-800 shadow-xs'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-1 px-1">
-                    {msg.timestamp}
-                  </span>
-                </div>
-              ))}
-              {isAiLoading && (
-                <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500">
-                  <Sparkles className="w-4 h-4 text-amber-500 animate-spin" />
-                  <span>Yacita está redactando una orientación pedagógica...</span>
-                </div>
-              )}
-              <div ref={chatMessagesEndRef} />
+          {/* 2. Periodic Tips Setting */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+            <div className="space-y-0.5">
+              <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Lightbulb className="w-4 h-4 text-amber-600" />
+                Sugerencias Periódicas
+              </span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                {isPeriodicEnabled ? 'Activadas (consejos cada 45–90 s)' : 'Desactivadas (solo interactivos)'}
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={() => handleTogglePeriodicAction()}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-colors min-h-[44px] active:scale-95 ${
+                isPeriodicEnabled
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              {isPeriodicEnabled ? 'Activadas' : 'Desactivadas'}
+            </button>
+          </div>
 
-            {/* Quick Questions */}
-            <div className="p-2.5 bg-slate-100 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 overflow-x-auto flex gap-1.5 no-scrollbar">
-              {QUICK_QUESTIONS.map((q, idx) => (
+          {/* 3. Coaching Level Selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+              Nivel de Acompañamiento:
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+              {(['completo', 'moderado', 'silencioso'] as CoachingLevel[]).map((lvl) => (
                 <button
-                  key={idx}
-                  onClick={() => handleSendMessage(q)}
-                  className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                  key={lvl}
+                  type="button"
+                  onClick={() => setCoachingLevel(lvl)}
+                  className={`py-2 text-xs font-bold rounded-lg capitalize transition-colors min-h-[44px] flex items-center justify-center gap-1 active:scale-95 ${
+                    coachingLevel === lvl
+                      ? 'bg-amber-500 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800'
+                  }`}
                 >
-                  {q}
+                  {coachingLevel === lvl && <Check className="w-3 h-3" />}
+                  <span>{lvl}</span>
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 px-1 leading-tight">
+              {coachingLevel === 'completo' && 'Completo: orienta en cada clic, botón, filtro y campo.'}
+              {coachingLevel === 'moderado' && 'Moderado: orienta solo al cambiar de pestaña o guardar.'}
+              {coachingLevel === 'silencioso' && 'Silencioso: no muestra burbujas salvo que la consultes.'}
+            </p>
+          </div>
 
-            {/* Input Row */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="p-3 bg-white dark:bg-[#111c3d] border-t border-slate-200 dark:border-slate-800 flex items-center gap-2"
+          {/* 4. Voice Speed Selector */}
+          {isVoiceEnabled && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                Velocidad de Voz:
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[1.0, 1.15, 1.3].map((spd) => (
+                  <button
+                    key={spd}
+                    type="button"
+                    onClick={() => setVoiceSpeed(spd)}
+                    className={`py-2 text-xs font-semibold rounded-lg border transition-colors min-h-[44px] active:scale-95 ${
+                      Math.abs(voiceSpeed - spd) < 0.05
+                        ? 'bg-blue-600 text-white border-blue-700'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {spd === 1.0 ? 'Normal (1.0x)' : spd === 1.15 ? 'Ágil (1.15x)' : 'Rápida (1.3x)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Test Voice & Pedagogical Chat */}
+          <div className="pt-2 flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={testVoice}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold min-h-[44px] active:scale-95"
             >
-              <input
-                type="text"
-                value={inputQuery}
-                onChange={(e) => setInputQuery(e.target.value)}
-                placeholder="Escribe tu consulta pedagógica..."
-                className="flex-1 px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
-              />
-              <button
-                type="submit"
-                disabled={!inputQuery.trim() || isAiLoading}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold transition-colors"
-              >
-                Enviar
-              </button>
-            </form>
+              <Play className="w-4 h-4 text-blue-600" />
+              <span>Probar Voz de Yacita</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsChatOpen(true);
+                setIsSettingsOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 text-xs font-bold min-h-[44px] active:scale-95"
+            >
+              <MessageSquare className="w-4 h-4 text-amber-600" />
+              <span>Consultorio Pedagógico con IA</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsMinimized(true);
+                setIsSettingsOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 min-h-[44px] active:scale-95"
+            >
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span>Minimizar a círculo pequeño</span>
+            </button>
           </div>
         </div>
-      )}
+      </Sheet>
 
-      {/* DEBUG DRAWER (?debug=yacita) (Parte 5) */}
+      {/* PEDAGOGICAL CHAT MODAL */}
+      <Sheet
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        sheetId="yacita_pedagogical_chat"
+        size="md"
+        title="Consultorio con Yacita"
+        subtitle="Orientación formativa y justicia restaurativa"
+        icon={
+          <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/60 p-0.5 flex items-center justify-center">
+            <img src={yacitaIdle} alt="Yacita" className="w-full h-full object-contain aspect-square" />
+          </div>
+        }
+        footer={
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="flex items-center gap-2 w-full"
+          >
+            <input
+              type="text"
+              value={inputQuery}
+              onChange={(e) => setInputQuery(e.target.value)}
+              placeholder="Escribe tu consulta pedagógica..."
+              className="flex-1 px-3.5 py-2 text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500 min-h-[44px]"
+            />
+            <button
+              type="submit"
+              disabled={!inputQuery.trim() || isAiLoading}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs sm:text-sm font-bold transition-colors min-h-[44px] min-w-[72px] active:scale-95"
+            >
+              Enviar
+            </button>
+          </form>
+        }
+      >
+        <div className="flex flex-col space-y-3 min-h-[360px]">
+          {/* Quick Questions */}
+          <div className="p-2 bg-slate-100 dark:bg-slate-900/60 rounded-xl overflow-x-auto flex gap-1.5 no-scrollbar shrink-0">
+            {QUICK_QUESTIONS.map((q, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSendMessage(q)}
+                className="shrink-0 text-[11px] px-2.5 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-amber-50 hover:border-amber-300 transition-colors min-h-[36px] active:scale-95"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* Messages Body */}
+          <div className="flex-1 space-y-3 p-1">
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+              >
+                <div
+                  className={`max-w-[88%] rounded-2xl p-3 text-xs sm:text-sm leading-relaxed ${
+                    msg.sender === 'user'
+                      ? 'bg-blue-600 text-white rounded-br-xs'
+                      : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-200 dark:border-slate-800 shadow-xs'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 px-1">
+                  {msg.timestamp}
+                </span>
+              </div>
+            ))}
+            {isAiLoading && (
+              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500">
+                <Sparkles className="w-4 h-4 text-amber-500 animate-spin shrink-0" />
+                <span>Yacita está redactando una orientación pedagógica...</span>
+              </div>
+            )}
+            <div ref={chatMessagesEndRef} />
+          </div>
+        </div>
+      </Sheet>
+
+      {/* DEBUG DRAWER (?debug=yacita) */}
       {isDebugMode && (
         <div
           data-yacita-ignore="true"
@@ -691,7 +793,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
           {!isDebugDrawerOpen ? (
             <button
               onClick={() => setIsDebugDrawerOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-xl text-xs font-bold hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               <Bug className="w-3.5 h-3.5 text-amber-400" />
               <span>Yacita Debug</span>
@@ -710,7 +812,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsDebugDrawerOpen(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-white"
+                  className="p-1 rounded-md text-slate-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -732,7 +834,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick simulation buttons */}
+              {/* Simulation test buttons */}
               <div className="mb-3 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Simulación de Pruebas:
@@ -740,32 +842,32 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 <div className="flex flex-wrap gap-1">
                   <button
                     onClick={() => simulateInteraction('nav_tab_matrix')}
-                    className="px-2 py-1 rounded-md bg-blue-900/60 hover:bg-blue-800 text-[10px] text-blue-200 border border-blue-700"
+                    className="px-2.5 py-1.5 rounded-md bg-blue-900/60 hover:bg-blue-800 text-[10px] text-blue-200 border border-blue-700 min-h-[36px]"
                   >
                     Tab Matriz
                   </button>
                   <button
                     onClick={() => simulateInteraction('matrix_score_3', { studentName: 'Juan' })}
-                    className="px-2 py-1 rounded-md bg-emerald-900/60 hover:bg-emerald-800 text-[10px] text-emerald-200 border border-emerald-700"
+                    className="px-2.5 py-1.5 rounded-md bg-emerald-900/60 hover:bg-emerald-800 text-[10px] text-emerald-200 border border-emerald-700 min-h-[36px]"
                   >
                     3★ Logrado
                   </button>
                   <button
                     onClick={() => simulateInteraction('matrix_score_1', { studentName: 'María' })}
-                    className="px-2 py-1 rounded-md bg-rose-900/60 hover:bg-rose-800 text-[10px] text-rose-200 border border-rose-700"
+                    className="px-2.5 py-1.5 rounded-md bg-rose-900/60 hover:bg-rose-800 text-[10px] text-rose-200 border border-rose-700 min-h-[36px]"
                   >
                     1★ Apoyo
                   </button>
                   <button
                     onClick={simulatePeriodicTip}
-                    className="px-2 py-1 rounded-md bg-amber-900/60 hover:bg-amber-800 text-[10px] text-amber-200 border border-amber-700"
+                    className="px-2.5 py-1.5 rounded-md bg-amber-900/60 hover:bg-amber-800 text-[10px] text-amber-200 border border-amber-700 min-h-[36px]"
                   >
                     💡 Periódico
                   </button>
                 </div>
               </div>
 
-              {/* Live Events Log with duplicate check */}
+              {/* Live Events Log */}
               <div className="flex-1 overflow-y-auto space-y-1.5 text-[10.5px]">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Historial de despachos (últimos):

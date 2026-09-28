@@ -277,3 +277,69 @@
     transition: opacity 0.2s ease !important;
   }
 }
+
+/* Safe Area Inset Helpers for Mobile devices & Notch */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.bottom-safe-nav {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* No Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Equalizer audio bar animation for speaking indicator */
+@keyframes eqBarPulse {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 14px;
+  }
+}
+
+.eq-bar-1 {
+  animation: eqBarPulse 0.5s ease-in-out infinite;
+}
+.eq-bar-2 {
+  animation: eqBarPulse 0.5s ease-in-out infinite 0.15s;
+}
+.eq-bar-3 {
+  animation: eqBarPulse 0.5s ease-in-out infinite 0.3s;
+}
+
+/* Mobile Ergonomics & iOS Anti-AutoZoom Rules */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media screen and (max-width: 640px) {
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+

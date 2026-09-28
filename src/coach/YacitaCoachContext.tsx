@@ -70,6 +70,7 @@ export interface YacitaCoachContextValue {
   setIsMinimized: (minimized: boolean) => void;
   microFeedback: MicroFeedback | null;
   isDialogueInModalPanel: boolean;
+  bubblePlacement: 'bottom' | 'top';
 
   // Field Guide (Parte 1 & 4)
   activeFieldGuide: GuiaCampoItem | null;
@@ -99,6 +100,9 @@ export interface YacitaCoachContextValue {
   notifyModalClose: () => void;
   notifyActionEvent: (eventId: keyof typeof ACTION_EVENTS, variables?: Record<string, string>) => void;
   notifyFieldFocus: (fieldId: string, variables?: Record<string, string>) => void;
+  onYacitaMenuOpened: () => void;
+  onVoiceToggled: (enabled: boolean) => void;
+  onPeriodicToggled: (enabled: boolean) => void;
 
   // Debug & verification (?debug=yacita)
   isDebugMode: boolean;
@@ -528,6 +532,7 @@ export const YacitaCoachProvider: React.FC<YacitaCoachProviderProps> = ({
     setIsMinimized: (min) => conversationController.setIsMinimized(min),
     microFeedback: controllerState.microFeedback,
     isDialogueInModalPanel: controllerState.isDialogueInModalPanel,
+    bubblePlacement: controllerState.bubblePlacement,
 
     activeFieldGuide: controllerState.activeFieldGuide,
     activeConsejoIndex: controllerState.activeConsejoIndex,
@@ -554,6 +559,9 @@ export const YacitaCoachProvider: React.FC<YacitaCoachProviderProps> = ({
     notifyModalClose,
     notifyActionEvent,
     notifyFieldFocus,
+    onYacitaMenuOpened: () => conversationController.onYacitaMenuOpened(),
+    onVoiceToggled: (enabled) => conversationController.onVoiceToggled(enabled),
+    onPeriodicToggled: (enabled) => conversationController.onPeriodicToggled(enabled),
 
     isDebugMode,
     debugStats,
