@@ -67,6 +67,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
   onApplyGrade,
   onApplyShift,
   onApplyGuardianName,
+  onApplyPhone,
   onApplyNotes,
 }) => {
   const {
@@ -74,19 +75,33 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
     activeConsejoIndex,
     rotateConsejo,
     isSpeaking,
+    isTyping,
+    displayedText,
+    skipVoiceAndComplete,
   } = useYacitaCoach();
 
-  // Completion calculation (5 mandatory fields)
+  // Strict valid completion calculation (5 mandatory fields)
   const completedCount = useMemo(() => {
     let count = 0;
-    if (fullName.trim().length >= 3) count++;
+    // 1. Full name: min 4 chars and at least two words
+    const cleanName = fullName.trim();
+    if (cleanName.length >= 4 && cleanName.split(/\s+/).length >= 2) count++;
+
+    // 2. Grade: min 3 chars
     if (grade.trim().length >= 3) count++;
-    if (shift) count++;
+
+    // 3. Shift: valid school shift
+    if (shift === 'Mañana' || shift === 'Tarde') count++;
+
+    // 4. Guardian: min 3 chars
     if (guardianName.trim().length >= 3) count++;
+
+    // 5. Phone: Colombian 10-digit mobile starting with 3
     const rawPhone = contactPhone.replace(/\D/g, '');
-    if (rawPhone.length === 10 || medicalSensoryNotes.trim().length > 0) count++;
+    if (rawPhone.length === 10 && rawPhone.startsWith('3')) count++;
+
     return count;
-  }, [fullName, grade, shift, guardianName, contactPhone, medicalSensoryNotes]);
+  }, [fullName, grade, shift, guardianName, contactPhone]);
 
   // Unique registered grades
   const uniqueGrades = useMemo(() => {
@@ -235,6 +250,41 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
             </div>
           </div>
         </div>
+
+        {/* IN-PANEL YACITA DIALOGUE BUBBLE (Parte 4: Un solo lugar de diálogo a la vez, dentro del panel) */}
+        {displayedText && (
+          <div
+            data-yacita-bubble="true"
+            onClick={skipVoiceAndComplete}
+            className="relative mb-3.5 p-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-600 shadow-xs cursor-pointer animate-in fade-in zoom-in-95 duration-150"
+            role="region"
+            aria-live="polite"
+            title="Haz clic para completar la voz y el texto"
+          >
+            <div className="flex items-center justify-between pb-1 mb-1 border-b border-amber-200/70 dark:border-amber-900/60">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                Yacita te acompaña:
+              </span>
+              {isSpeaking && (
+                <span className="text-[9px] px-1 rounded-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                  🔊 Hablando
+                </span>
+              )}
+            </div>
+            <p className="text-xs leading-relaxed font-medium text-slate-800 dark:text-slate-100">
+              {displayedText}
+              {(isSpeaking || isTyping) && (
+                <span className="inline-block w-1.5 h-3 ml-0.5 bg-amber-500 animate-pulse align-middle" />
+              )}
+            </p>
+            {/* Speech tail pointing towards mini-avatar */}
+            <div
+              className="absolute -top-1.5 left-7 w-3 h-3 bg-amber-50/90 dark:bg-[#1a233a] border-l-2 border-t-2 border-amber-400 dark:border-amber-600 transform rotate-45"
+              aria-hidden="true"
+            />
+          </div>
+        )}
 
         {/* Status Pill */}
         <div className="mb-4 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">

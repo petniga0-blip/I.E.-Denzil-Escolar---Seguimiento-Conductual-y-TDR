@@ -11,7 +11,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Student, ShiftType } from '../types';
-import { emitYacitaEvent } from '../utils/yacitaVoice';
 import { useYacitaCoach } from '../coach';
 import {
   StudentFormCoachPanel,
@@ -99,10 +98,6 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
     setFocusedField('fullName');
     setIsFormOpen(true);
     notifyModalOpen('add_student');
-    emitYacitaEvent({
-      type: 'student-modal-opened',
-      message: '¡Vamos a registrar un estudiante, profe! Te acompaño paso a paso.',
-    });
   };
 
   const openEditModal = (student: Student) => {
@@ -117,16 +112,11 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
     setFocusedField('fullName');
     setIsFormOpen(true);
     notifyModalOpen('edit_student');
-    emitYacitaEvent({
-      type: 'student-modal-opened',
-      message: `Editando a ${student.fullName}. Puedes actualizar el acudiente o teléfono.`,
-    });
   };
 
   const closeFormModal = useCallback(() => {
     setIsFormOpen(false);
     notifyModalClose();
-    emitYacitaEvent({ type: 'student-modal-closed' });
   }, [notifyModalClose]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,10 +148,6 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
         medicalSensoryNotes: medicalSensoryNotes.trim(),
       });
       notifyActionEvent('student_saved', { studentName: fullName.trim() });
-      emitYacitaEvent({
-        type: 'celebrate',
-        message: `¡Cambios de ${fullName.trim()} guardados con éxito, profe! 🎉`,
-      });
     } else {
       onAddStudent({
         fullName: fullName.trim(),
@@ -172,11 +158,6 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
         medicalSensoryNotes: medicalSensoryNotes.trim(),
       });
       notifyActionEvent('student_saved', { studentName: fullName.trim() });
-      emitYacitaEvent({
-        type: 'student-saved',
-        studentName: fullName.trim(),
-        message: `¡Bravo, profe! Registramos a ${fullName.trim()} con éxito. 🎉 Ya puedes evaluar su convivencia en la Matriz.`,
-      });
     }
 
     closeFormModal();

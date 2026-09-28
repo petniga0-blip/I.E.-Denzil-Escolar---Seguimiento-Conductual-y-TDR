@@ -149,6 +149,7 @@ export interface SpeakOptions {
   volume?: number; // default 1.0
   containsPersonalData?: boolean;
   onMouthToggle?: (isSpeakingMouth: boolean) => void;
+  onBoundary?: (charIndex: number, charLength?: number) => void;
   onStart?: () => void;
   onEnd?: () => void;
   onError?: (err: any) => void;
@@ -194,6 +195,7 @@ export async function speakYacita(
     volume = 1.0,
     containsPersonalData = false,
     onMouthToggle,
+    onBoundary,
     onStart,
     onEnd,
     onError,
@@ -299,6 +301,10 @@ export async function speakYacita(
 
     utterance.onstart = () => {
       startMouth();
+    };
+
+    utterance.onboundary = (e: SpeechSynthesisEvent) => {
+      onBoundary?.(e.charIndex, (e as any).charLength || 0);
     };
 
     utterance.onend = () => {

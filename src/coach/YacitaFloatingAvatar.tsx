@@ -5,17 +5,12 @@ import {
   VolumeX,
   HelpCircle,
   Minimize2,
-  Maximize2,
   EyeOff,
   MessageSquare,
-  Send,
   Sparkles,
-  Bot,
-  Copy,
-  Check,
   Settings2,
   SlidersHorizontal,
-  ChevronDown,
+  Lightbulb,
   Bug,
   Play,
   RotateCcw,
@@ -64,29 +59,59 @@ const QUICK_QUESTIONS = [
 export const YacitaFloatingAvatar: React.FC = () => {
   const {
     teacherName,
-    currentTab,
     coachingLevel,
     setCoachingLevel,
+    isVoiceEnabled,
+    setIsVoiceEnabled,
+    isPeriodicEnabled,
+    setIsPeriodicEnabled,
     currentBubble,
     currentMood,
     microFeedback,
     displayedText,
+    isSpeaking,
     isTyping,
-    isMuted,
-    setIsMuted,
     isMinimized,
     setIsMinimized,
     setIsPaused,
     dismissBubble,
+    skipVoiceAndComplete,
     reopenTabHelp,
     dismissTipForever,
+    isDialogueInModalPanel,
     isDebugMode,
     debugStats,
+    debugEvents,
     simulateInteraction,
+    simulatePeriodicTip,
   } = useYacitaCoach();
 
   // Menu popup state when clicking Yacita
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Quick confirmation toast when toggling voice or periodic suggestions
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = (msg: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2200);
+  };
+
+  const handleToggleVoice = () => {
+    const next = !isVoiceEnabled;
+    setIsVoiceEnabled(next);
+    showToast(next ? 'Voz activada 🔊' : 'Voz desactivada 🔇');
+  };
+
+  const handleTogglePeriodic = () => {
+    const next = !isPeriodicEnabled;
+    setIsPeriodicEnabled(next);
+    showToast(next ? 'Sugerencias periódicas activadas 💡' : 'Sugerencias periódicas desactivadas ⏸️');
+  };
 
   // Chat modal state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -100,7 +125,6 @@ export const YacitaFloatingAvatar: React.FC = () => {
   ]);
   const [inputQuery, setInputQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
   // Debug drawer state
@@ -156,21 +180,55 @@ export const YacitaFloatingAvatar: React.FC = () => {
     }
   };
 
-  const handleCopyText = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
   const activeImage = YACITA_IMAGE_MAP[currentMood] || yacitaIdle;
 
-  // MINIMIZED STATE: Small circular avatar button with Yacita's real image (anti-SVG)
+  // MINIMIZED STATE: compact button, interaction bubbles still shown unless level is silencioso
+  const shouldShowFloatingBubble =
+    currentBubble &&
+    !isChatOpen &&
+    !isDialogueInModalPanel &&
+    coachingLevel !== 'silencioso';
+
   if (isMinimized) {
     return (
       <div
         data-yacita-ignore="true"
-        className="fixed bottom-4 right-4 z-[9999] no-print flex items-center gap-2"
+        className="fixed bottom-4 right-4 z-[9999] no-print flex flex-col items-end gap-2"
       >
+        {/* Floating bubble even when minimized unless coaching level is silencioso */}
+        {shouldShowFloatingBubble && (
+          <div
+            data-yacita-bubble="true"
+            onClick={skipVoiceAndComplete}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            className="mb-2 w-[280px] sm:w-[310px] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 border-2 border-amber-400 dark:border-amber-500/80 shadow-2xl animate-in zoom-in-95 duration-150 cursor-pointer"
+            role="region"
+            aria-live="polite"
+          >
+            <div className="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-amber-100 dark:border-slate-800/80">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                Yacita · Coach
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismissBubble();
+                }}
+                className="p-0.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p className="text-xs leading-relaxed font-medium">
+              {displayedText}
+              {(isSpeaking || isTyping) && (
+                <span className="inline-block w-1.5 h-3 ml-0.5 bg-amber-500 animate-pulse align-middle" />
+              )}
+            </p>
+          </div>
+        )}
+
         <button
           onClick={() => setIsMinimized(false)}
           className="relative w-14 h-14 rounded-full bg-white dark:bg-[#131f42] p-1 shadow-2xl border-2 border-amber-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer group"
@@ -178,7 +236,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
           aria-label="Expandir a Yacita"
         >
           <img
-            src={yacitaIdle}
+            src={activeImage}
             alt="Yacita Minimizado"
             className="w-full h-full object-contain rounded-full aspect-square"
           />
@@ -195,7 +253,14 @@ export const YacitaFloatingAvatar: React.FC = () => {
         className="fixed bottom-4 right-4 z-[9999] no-print flex flex-col items-end select-none pointer-events-none"
         style={{ filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.22))' }}
       >
-        {/* MICRO-FEEDBACK BADGE (For rapid repetitive interactions, e.g. matrix stars) */}
+        {/* Toast confirmation for voice / periodic settings */}
+        {toastMessage && (
+          <div className="pointer-events-auto mb-2 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-lg animate-in fade-in slide-in-from-bottom-1 duration-150">
+            {toastMessage}
+          </div>
+        )}
+
+        {/* MICRO-FEEDBACK BADGE (Rapid repetitive interactions) */}
         {microFeedback && !currentBubble && !isChatOpen && (
           <div
             className="pointer-events-auto mb-2 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 flex items-center gap-1.5"
@@ -206,15 +271,17 @@ export const YacitaFloatingAvatar: React.FC = () => {
           </div>
         )}
 
-        {/* SPEECH BUBBLE ANCHORED ABOVE YACITA */}
-        {currentBubble && !isChatOpen && (
+        {/* SPEECH BUBBLE ANCHORED ABOVE YACITA (Hidden if dialogue is inside modal panel) */}
+        {shouldShowFloatingBubble && (
           <div
             data-yacita-bubble="true"
+            onClick={skipVoiceAndComplete}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="pointer-events-auto relative mb-3 w-[300px] sm:w-[325px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3.5 border-2 border-amber-400 dark:border-amber-500/80 shadow-2xl animate-in zoom-in-95 fade-in duration-200"
+            className="pointer-events-auto relative mb-3 w-[300px] sm:w-[325px] max-w-[calc(100vw-32px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3.5 border-2 border-amber-400 dark:border-amber-500/80 shadow-2xl animate-in zoom-in-95 fade-in duration-200 cursor-pointer"
             role="region"
             aria-live="polite"
+            title="Haz clic en la burbuja para completar el texto de inmediato"
           >
             {/* Header of the bubble */}
             <div className="flex items-center justify-between gap-1 pb-1.5 mb-1.5 border-b border-amber-100 dark:border-slate-800/80">
@@ -226,9 +293,17 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-medium">
                   {coachingLevel === 'completo' ? 'Completo' : coachingLevel === 'moderado' ? 'Moderado' : 'Silencioso'}
                 </span>
+                {isSpeaking && (
+                  <span className="text-[9px] px-1 rounded-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    🔊 Hablando
+                  </span>
+                )}
               </div>
               <button
-                onClick={dismissBubble}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismissBubble();
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 title="Cerrar burbuja"
                 aria-label="Cerrar mensaje"
@@ -237,21 +312,22 @@ export const YacitaFloatingAvatar: React.FC = () => {
               </button>
             </div>
 
-            {/* Text with typewriter effect */}
+            {/* Text synchronized with voice */}
             <p className="text-xs sm:text-[13px] leading-relaxed font-medium text-slate-700 dark:text-slate-200 min-h-[38px]">
               {displayedText}
-              {isTyping && (
+              {(isSpeaking || isTyping) && (
                 <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-amber-500 animate-pulse align-middle" />
               )}
             </p>
 
             {/* Action buttons if available */}
-            {currentBubble.botones && currentBubble.botones.length > 0 && !isTyping && (
+            {currentBubble.botones && currentBubble.botones.length > 0 && !isSpeaking && !isTyping && (
               <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5">
                 {currentBubble.botones.map((btn) => (
                   <button
                     key={btn.actionId}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       btn.onClick?.();
                       dismissBubble();
                     }}
@@ -268,10 +344,13 @@ export const YacitaFloatingAvatar: React.FC = () => {
             )}
 
             {/* Do not show again button for periodic tips */}
-            {currentBubble.allowDoNotShowAgain && !isTyping && (
+            {currentBubble.allowDoNotShowAgain && !isSpeaking && !isTyping && (
               <div className="mt-2 pt-1 flex justify-end">
                 <button
-                  onClick={() => dismissTipForever(currentBubble.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissTipForever(currentBubble.id);
+                  }}
                   className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   title="No volver a mostrar esta sugerencia"
                 >
@@ -308,7 +387,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
               </button>
             </div>
 
-            {/* Coaching Level Selector (D: Completo / Moderado / Silencioso) */}
+            {/* Coaching Level Selector (Completo / Moderado / Silencioso) */}
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
                 Nivel de interacción:
@@ -360,20 +439,6 @@ export const YacitaFloatingAvatar: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-              >
-                <span className="flex items-center gap-2">
-                  {isMuted ? (
-                    <VolumeX className="w-3.5 h-3.5 text-red-500" />
-                  ) : (
-                    <Volume2 className="w-3.5 h-3.5 text-emerald-500" />
-                  )}
-                  <span>{isMuted ? 'Activar sugerencias' : 'Silenciar sugerencias'}</span>
-                </span>
-              </button>
-
-              <button
                 onClick={() => {
                   setIsMinimized(true);
                   setIsMenuOpen(false);
@@ -389,9 +454,63 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
         {/* YACITA AVATAR & CONTROLS ROW */}
         <div data-yacita-avatar-area="true" className="pointer-events-auto flex items-end gap-2">
-          {/* Floating Quick Controls Toolbar */}
+          {/* Floating Quick Controls Toolbar with 3 Independent Controls (Parte 3) */}
           <div className="flex flex-col gap-1.5 mb-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
-            {/* Reopen Current Screen Help */}
+            {/* Control 1: VOICE TOGGLE (Dedicated, clear icon + tooltip + state) */}
+            <button
+              onClick={handleToggleVoice}
+              aria-pressed={isVoiceEnabled}
+              className={`p-1.5 rounded-lg transition-colors relative group ${
+                isVoiceEnabled
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isVoiceEnabled ? 'Voz: Activada (haz clic para desactivar)' : 'Voz: Desactivada (haz clic para activar)'}
+              aria-label={isVoiceEnabled ? 'Desactivar voz de Yacita' : 'Activar voz de Yacita'}
+            >
+              {isVoiceEnabled ? (
+                <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-slate-400" />
+              )}
+              {isVoiceEnabled && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+              )}
+            </button>
+
+            {/* Control 2: PERIODIC SUGGESTIONS TOGGLE (Independent, affects ONLY 45-90s tips) */}
+            <button
+              onClick={handleTogglePeriodic}
+              aria-pressed={isPeriodicEnabled}
+              className={`p-1.5 rounded-lg transition-colors relative group ${
+                isPeriodicEnabled
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={
+                isPeriodicEnabled
+                  ? 'Sugerencias periódicas: Activadas (haz clic para pausar)'
+                  : 'Sugerencias periódicas: Desactivadas (haz clic para reactivar)'
+              }
+              aria-label={
+                isPeriodicEnabled
+                  ? 'Desactivar sugerencias periódicas'
+                  : 'Activar sugerencias periódicas'
+              }
+            >
+              <Lightbulb
+                className={`w-4 h-4 ${
+                  isPeriodicEnabled
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-slate-400'
+                }`}
+              />
+              {isPeriodicEnabled && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-amber-500 rounded-full" />
+              )}
+            </button>
+
+            {/* Screen Help */}
             <button
               onClick={reopenTabHelp}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors"
@@ -401,7 +520,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
               <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </button>
 
-            {/* Pedagogical AI Chat Button */}
+            {/* AI Consultation Chat */}
             <button
               onClick={() => setIsChatOpen(true)}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/60 transition-colors"
@@ -411,7 +530,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
               <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </button>
 
-            {/* Menu & Options Button */}
+            {/* Control 3: Settings Menu for Coaching Level */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -419,20 +538,6 @@ export const YacitaFloatingAvatar: React.FC = () => {
               aria-label="Opciones de Yacita"
             >
               <Settings2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-
-            {/* Mute / Unmute Suggestions (Stored in localStorage) */}
-            <button
-              onClick={() => setIsMuted(!isMuted)}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title={isMuted ? 'Activar sugerencias periódicas' : 'Silenciar sugerencias periódicas'}
-              aria-label="Silenciar sugerencias"
-            >
-              {isMuted ? (
-                <VolumeX className="w-4 h-4 text-red-500" />
-              ) : (
-                <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              )}
             </button>
 
             {/* Minimize Avatar */}
@@ -459,7 +564,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
             title="Yacita: Acompañante Pedagógico (haz clic para menú de opciones)"
             aria-label="Yacita"
           >
-            {/* Subtle glow circle behind Yacita */}
+            {/* Subtle glow circle */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400/20 via-blue-500/10 to-emerald-400/20 blur-md group-hover:blur-lg transition-all" />
 
             {/* Authentic Institutional PNG Expression - STRICTLY NO SVG */}
@@ -470,8 +575,8 @@ export const YacitaFloatingAvatar: React.FC = () => {
               loading="eager"
             />
 
-            {/* Speaking indicator dot */}
-            {isTyping && (
+            {/* Speaking/Typing indicator dot */}
+            {(isSpeaking || isTyping) && (
               <span className="absolute bottom-1 right-2 z-20 flex h-3.5 w-3.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border border-white dark:border-slate-900" />
@@ -518,53 +623,39 @@ export const YacitaFloatingAvatar: React.FC = () => {
                     className={`max-w-[85%] rounded-2xl p-3 text-xs sm:text-sm leading-relaxed ${
                       msg.sender === 'user'
                         ? 'bg-blue-600 text-white rounded-br-xs'
-                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-bl-xs shadow-xs'
+                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-bl-xs border border-slate-200 dark:border-slate-800 shadow-xs'
                     }`}
                   >
-                    <p>{msg.text}</p>
-                    <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400">
-                      <span>{msg.timestamp}</span>
-                      {msg.sender === 'yacita' && (
-                        <button
-                          onClick={() => handleCopyText(msg.id, msg.text)}
-                          className="hover:text-blue-500 transition-colors"
-                          title="Copiar texto"
-                        >
-                          {copiedId === msg.id ? (
-                            <Check className="w-3 h-3 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                        </button>
-                      )}
-                    </div>
+                    {msg.text}
                   </div>
+                  <span className="text-[10px] text-slate-400 mt-1 px-1">
+                    {msg.timestamp}
+                  </span>
                 </div>
               ))}
               {isAiLoading && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 italic p-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500">
+                  <Sparkles className="w-4 h-4 text-amber-500 animate-spin" />
                   <span>Yacita está redactando una orientación pedagógica...</span>
                 </div>
               )}
               <div ref={chatMessagesEndRef} />
             </div>
 
-            {/* Quick Questions Chips */}
-            <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 flex gap-1.5 overflow-x-auto">
-              {QUICK_QUESTIONS.map((q, i) => (
+            {/* Quick Questions */}
+            <div className="p-2.5 bg-slate-100 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 overflow-x-auto flex gap-1.5 no-scrollbar">
+              {QUICK_QUESTIONS.map((q, idx) => (
                 <button
-                  key={i}
-                  type="button"
+                  key={idx}
                   onClick={() => handleSendMessage(q)}
-                  className="px-2.5 py-1 text-[11px] font-medium rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-950/60 text-slate-700 dark:text-slate-300 transition-colors shrink-0 whitespace-nowrap"
+                  className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-amber-50 hover:border-amber-300 transition-colors"
                 >
                   {q}
                 </button>
               ))}
             </div>
 
-            {/* Input Bar */}
+            {/* Input Row */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -576,136 +667,140 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 type="text"
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
-                placeholder="Escribe tu consulta pedagógica para Yacita..."
-                className="flex-1 px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                placeholder="Escribe tu consulta pedagógica..."
+                className="flex-1 px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
               />
               <button
                 type="submit"
                 disabled={!inputQuery.trim() || isAiLoading}
-                className="p-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white transition-colors"
-                title="Enviar mensaje"
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold transition-colors"
               >
-                <Send className="w-4 h-4" />
+                Enviar
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* F: DEBUG MODE DRAWER (?debug=yacita) */}
+      {/* DEBUG DRAWER (?debug=yacita) (Parte 5) */}
       {isDebugMode && (
-        <div data-yacita-ignore="true" className="fixed bottom-4 left-4 z-[9999] no-print">
-          <button
-            onClick={() => setIsDebugDrawerOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-2xl hover:bg-amber-700 transition-colors border-2 border-white dark:border-slate-800"
-          >
-            <Bug className="w-4 h-4" />
-            <span>Yacita Debug ({debugStats.withDataYacita}/{debugStats.total})</span>
-          </button>
+        <div
+          data-yacita-ignore="true"
+          className="fixed bottom-4 left-4 z-[9999] no-print"
+        >
+          {!isDebugDrawerOpen ? (
+            <button
+              onClick={() => setIsDebugDrawerOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+            >
+              <Bug className="w-3.5 h-3.5 text-amber-400" />
+              <span>Yacita Debug</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-900 text-[10px]">
+                {debugEvents.length}
+              </span>
+            </button>
+          ) : (
+            <div className="w-[360px] sm:w-[420px] max-w-[calc(100vw-32px)] bg-slate-900 text-slate-100 rounded-2xl p-4 border border-amber-500/80 shadow-2xl max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800 mb-3">
+                <div className="flex items-center gap-2">
+                  <Bug className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-black uppercase text-amber-400">
+                    Registro de Eventos y Controlador
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setIsDebugDrawerOpen(false)}
+                  className="p-1 rounded-md text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-          {isDebugDrawerOpen && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[10001]">
-              <div className="bg-white dark:bg-[#111c3d] rounded-2xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-                <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Bug className="w-5 h-5 text-amber-400" />
-                    <h3 className="text-sm font-bold">Panel de Pruebas y Cobertura · Yacita</h3>
-                  </div>
+              {/* Stats overview */}
+              <div className="grid grid-cols-3 gap-2 mb-3 text-center text-[10px]">
+                <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+                  <span className="block text-slate-400">Total Interac.</span>
+                  <span className="font-bold text-amber-300 text-sm">{debugStats.total}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+                  <span className="block text-slate-400">Con data-yacita</span>
+                  <span className="font-bold text-emerald-400 text-sm">{debugStats.withDataYacita}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+                  <span className="block text-slate-400">Genéricos</span>
+                  <span className="font-bold text-blue-400 text-sm">{debugStats.generic}</span>
+                </div>
+              </div>
+
+              {/* Quick simulation buttons */}
+              <div className="mb-3 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Simulación de Pruebas:
+                </span>
+                <div className="flex flex-wrap gap-1">
                   <button
-                    onClick={() => setIsDebugDrawerOpen(false)}
-                    className="p-1 rounded-lg text-white/80 hover:text-white"
+                    onClick={() => simulateInteraction('nav_tab_matrix')}
+                    className="px-2 py-1 rounded-md bg-blue-900/60 hover:bg-blue-800 text-[10px] text-blue-200 border border-blue-700"
                   >
-                    <X className="w-5 h-5" />
+                    Tab Matriz
+                  </button>
+                  <button
+                    onClick={() => simulateInteraction('matrix_score_3', { studentName: 'Juan' })}
+                    className="px-2 py-1 rounded-md bg-emerald-900/60 hover:bg-emerald-800 text-[10px] text-emerald-200 border border-emerald-700"
+                  >
+                    3★ Logrado
+                  </button>
+                  <button
+                    onClick={() => simulateInteraction('matrix_score_1', { studentName: 'María' })}
+                    className="px-2 py-1 rounded-md bg-rose-900/60 hover:bg-rose-800 text-[10px] text-rose-200 border border-rose-700"
+                  >
+                    1★ Apoyo
+                  </button>
+                  <button
+                    onClick={simulatePeriodicTip}
+                    className="px-2 py-1 rounded-md bg-amber-900/60 hover:bg-amber-800 text-[10px] text-amber-200 border border-amber-700"
+                  >
+                    💡 Periódico
                   </button>
                 </div>
+              </div>
 
-                <div className="p-4 overflow-y-auto space-y-4 text-xs">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-center">
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold">Total Elementos</span>
-                      <p className="text-xl font-black text-slate-800 dark:text-slate-100">{debugStats.total}</p>
+              {/* Live Events Log with duplicate check */}
+              <div className="flex-1 overflow-y-auto space-y-1.5 text-[10.5px]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Historial de despachos (últimos):
+                </span>
+                {debugEvents.map((evt, idx) => (
+                  <div
+                    key={`${evt.seq}-${idx}`}
+                    className={`p-2 rounded-lg border flex flex-col gap-0.5 ${
+                      evt.status === 'duplicado_ignorado'
+                        ? 'bg-red-950/60 border-red-700 text-red-200'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[9px] text-amber-400">
+                        seq #{evt.seq} · {evt.time}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${
+                          evt.status === 'duplicado_ignorado'
+                            ? 'bg-red-600 text-white'
+                            : 'bg-emerald-900 text-emerald-300'
+                        }`}
+                      >
+                        {evt.status === 'duplicado_ignorado' ? 'DUPLICADO IGNORADO' : evt.origen}
+                      </span>
                     </div>
-                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-center">
-                      <span className="text-[10px] text-emerald-600 uppercase font-semibold">Con data-yacita</span>
-                      <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{debugStats.withDataYacita}</p>
+                    <div className="font-semibold text-slate-100 truncate">
+                      {evt.id}
                     </div>
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-center">
-                      <span className="text-[10px] text-amber-600 uppercase font-semibold">Usa Genérico</span>
-                      <p className="text-xl font-black text-amber-600 dark:text-amber-400">{debugStats.generic}</p>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      "{evt.textSnippet}..."
                     </div>
                   </div>
-
-                  {/* Simulator Buttons */}
-                  <div>
-                    <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2">
-                      Simular Interacciones por Sección:
-                    </h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        onClick={() => simulateInteraction('nav_tab_students')}
-                        className="px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 font-semibold"
-                      >
-                        Tab Estudiantes
-                      </button>
-                      <button
-                        onClick={() => simulateInteraction('nav_tab_matrix')}
-                        className="px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 font-semibold"
-                      >
-                        Tab Matriz
-                      </button>
-                      <button
-                        onClick={() => simulateInteraction('nav_tab_abc')}
-                        className="px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 font-semibold"
-                      >
-                        Tab A-B-C
-                      </button>
-                      <button
-                        onClick={() => simulateInteraction('nav_tab_reports')}
-                        className="px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 font-semibold"
-                      >
-                        Tab Reportes
-                      </button>
-                      <button
-                        onClick={() => simulateInteraction('matrix_score_3', { studentName: 'Jhoan David' })}
-                        className="px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-semibold"
-                      >
-                        3★ Logrado
-                      </button>
-                      <button
-                        onClick={() => simulateInteraction('matrix_score_1', { studentName: 'Katherin Dayana' })}
-                        className="px-2.5 py-1 rounded bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-200 font-semibold"
-                      >
-                        1★ Requiere Apoyo
-                      </button>
-                      <button
-                        onClick={() => simulateInteraction('header_drive_sync')}
-                        className="px-2.5 py-1 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 font-semibold"
-                      >
-                        Google Drive
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* List of elements without custom data-yacita */}
-                  <div>
-                    <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-1">
-                      Elementos interactivos sin mensaje propio (usan genérico):
-                    </h4>
-                    {debugStats.genericElements.length === 0 ? (
-                      <p className="text-emerald-600 font-medium">¡Excelente! Todos los elementos interactivos tienen su data-yacita específico.</p>
-                    ) : (
-                      <div className="max-h-48 overflow-y-auto space-y-1.5 border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50 dark:bg-slate-900/60 font-mono text-[11px]">
-                        {debugStats.genericElements.map((el, i) => (
-                          <div key={i} className="p-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                            <span className="font-bold text-amber-600">&lt;{el.tag}&gt;</span> {el.label}
-                            <span className="text-[10px] text-slate-400 block truncate">{el.sampleHtml}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}

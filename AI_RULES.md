@@ -13,8 +13,9 @@ El membrete de los reportes sale SOLO de src/config/membrete.ts y del módulo Me
 - En los reportes no debe aparecer "República de Colombia...", ni lemas ni direcciones amontonadas en el cabezote.
 
 ## 4. Sistema de Acompañamiento y Guía de Yacita
+- Todo mensaje pasa por ConversationController; burbuja y voz salen del mismo objeto; la voz y las sugerencias periódicas son ajustes independientes; nada muestra burbujas ni voz por fuera del controlador.
 - Todo elemento interactivo nuevo debe llevar `data-yacita` y su mensaje en `src/config/yacitaMensajes.ts`.
 - Toda pantalla, campo o botón nuevo lleva guía (función + consejo) en `guiaCampos` y `textoVoz`.
 - La voz de Yacita es femenina, en español, con respaldo automático y nunca envía datos personales de estudiantes a servicios externos.
-- El listener global del orquestador en `src/coach/YacitaCoachContext.tsx` no se elimina ni se desactiva.
+- El listener global del orquestador no se elimina ni se desactiva.
 - Prohibición absoluta de SVG, canvas o dibujos para Yacita: sus expresiones son únicamente los archivos PNG oficiales ubicados en `src/assets/` y referenciados en `YACITA_IMAGE_MAP`.
