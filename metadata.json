@@ -1,0 +1,6 @@
+{
+  "name": "I.E. Denzil Escolar - Seguimiento Conductual y TDR",
+  "description": "Sistema institucional de registro, seguimiento conductual en el aula y Tarjeta Diaria de Reporte (TDR) con enfoque formativo A-B-C y justicia restaurativa.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
