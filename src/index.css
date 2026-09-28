@@ -1,11 +1,26 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --color-institutional-navy: #1e3a8a;
     --color-sand-guajira: #d97706;
     --color-emerald-formativo: #15803d;
   }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
 }
 
 /* Custom scrollbars */

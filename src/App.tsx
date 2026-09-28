@@ -26,6 +26,7 @@ import { OfficialReportsHub } from './components/OfficialReportsHub';
 import { OfficialReportModal } from './components/OfficialReportModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
+import { YacitaGuide } from './components/YacitaGuide';
 
 export default function App() {
   // Theme State (Dark mode defaults or system preference)
@@ -247,7 +248,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1329] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
+    <div className="min-h-screen bg-slate-100 text-slate-800 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Institutional Header */}
       <Header
         currentTab={currentTab}
@@ -261,8 +262,8 @@ export default function App() {
         onImportBackup={handleImportBackup}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Main Content Area with generous bottom padding so floating avatar never obstructs tables or buttons */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
         {currentTab === 'students' && (
           <StudentManagement
             students={students}
@@ -352,6 +353,22 @@ export default function App() {
           </span>
         </div>
       </footer>
+
+      {/* Yacita Guía Pedagógica Intercativa (Screen Only) */}
+      <YacitaGuide
+        currentSection={
+          isGoogleModalOpen || isDriveSyncModalOpen
+            ? 'configuracion'
+            : currentTab === 'matrix'
+            ? 'matriz'
+            : currentTab === 'students'
+            ? 'estudiantes'
+            : currentTab === 'abc'
+            ? 'abc'
+            : 'reportes'
+        }
+        isDarkMode={isDark}
+      />
     </div>
   );
 }

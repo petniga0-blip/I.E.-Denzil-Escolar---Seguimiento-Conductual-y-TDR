@@ -23,10 +23,11 @@ interface ExportDocxOptions {
   dailyScore?: DailyCriterionScore;
   teacherName?: string;
   customDate?: string;
+  parentSummary?: string;
 }
 
 export async function generateOfficialDocxBlob(options: ExportDocxOptions): Promise<Blob> {
-  const { student, incident, dailyScore, teacherName = 'Lic. Marielis E. Cotes Benjumea', customDate } = options;
+  const { student, incident, dailyScore, teacherName = 'Lic. Marielis E. Cotes Benjumea', customDate, parentSummary } = options;
 
   const dateStr = incident?.date || dailyScore?.date || customDate || new Date().toISOString().split('T')[0];
   const timeStr = incident?.time || '08:00 AM';
@@ -478,6 +479,12 @@ export async function generateOfficialDocxBlob(options: ExportDocxOptions): Prom
             'Observaciones Pedagógicas y Seguimiento Docente',
             incident?.teacherObservations || 'Se acompaña al estudiante con diálogo asertivo y pautas de regulación emocional.'
           ),
+
+          // INFORME PARA LA FAMILIA (YACITA IA)
+          ...(parentSummary ? [
+            createSectionHeader('INFORME FORMATIVO PARA LA FAMILIA / ACUDIENTE (YACITA IA)'),
+            createBodyParagraph('Síntesis Formativa para el Hogar', parentSummary),
+          ] : []),
 
           // 5. COMPROMISOS Y FIRMAS
           createSectionHeader('5. COMPROMISOS Y FIRMAS FORMALES'),

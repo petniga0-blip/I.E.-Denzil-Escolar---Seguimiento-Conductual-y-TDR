@@ -10,6 +10,18 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/png" href="/denzil.png" />
+    <script>
+      (function() {
+        try {
+          var mode = localStorage.getItem('denzil_theme_mode');
+          if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white dark:bg-[#0b1329] dark:text-slate-100 min-h-screen">
     <div id="root"></div>

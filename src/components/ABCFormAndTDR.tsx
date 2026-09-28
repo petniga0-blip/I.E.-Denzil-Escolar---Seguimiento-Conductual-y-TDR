@@ -23,6 +23,9 @@ import {
   COMMON_REGULATORY_ACTIONS,
   TeacherProfile,
 } from '../types';
+import { YacitaRewriteButton } from './YacitaRewriteButton';
+import { suggestRestorativePlanWithYacita } from '../utils/yacitaAI';
+import { Lightbulb } from 'lucide-react';
 
 interface ABCFormAndTDRProps {
   students: Student[];
@@ -75,6 +78,52 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
   const [teacherObservations, setTeacherObservations] = useState<string>(
     'Se interviene con tono calmado. El estudiante recupera la regulación y se reintegra a la jornada formativa.'
   );
+  const [isSuggestingPlan, setIsSuggestingPlan] = useState<boolean>(false);
+
+  // Smart suggestion for restorative consequences with Yacita
+  const handleSuggestPlanWithYacita = async () => {
+    setIsSuggestingPlan(true);
+    try {
+      const suggestions = await suggestRestorativePlanWithYacita(selectedBehaviors, otherBehaviorDetail);
+      const newActions: string[] = [];
+      const joined = (suggestions.join(' ') + ' ' + selectedBehaviors.join(' ') + ' ' + otherBehaviorDetail).toLowerCase();
+
+      if (joined.includes('pausa') || joined.includes('sensorial') || joined.includes('calma')) {
+        newActions.push(COMMON_REGULATORY_ACTIONS[2]);
+      }
+      if (joined.includes('recreo') || joined.includes('mediado') || joined.includes('agresion') || joined.includes('golpe') || joined.includes('pego')) {
+        newActions.push(COMMON_REGULATORY_ACTIONS[0]);
+      }
+      if (joined.includes('dialogo') || joined.includes('conversacion') || joined.includes('merienda')) {
+        newActions.push(COMMON_REGULATORY_ACTIONS[1]);
+      }
+      if (joined.includes('reparacion') || joined.includes('acuerdo') || joined.includes('simbolica') || joined.includes('disculpa')) {
+        newActions.push(COMMON_REGULATORY_ACTIONS[5]);
+      }
+      if (joined.includes('material') || joined.includes('pupitre') || joined.includes('utiles') || joined.includes('tijera')) {
+        newActions.push(COMMON_REGULATORY_ACTIONS[3]);
+      }
+      if (newActions.length === 0) {
+        newActions.push(COMMON_REGULATORY_ACTIONS[2], COMMON_REGULATORY_ACTIONS[5]);
+      }
+      setSelectedRegulatoryActions(Array.from(new Set(newActions)));
+
+      // Also suggest a customized restorative pact
+      if (!restorativeAgreement || restorativeAgreement.includes('El estudiante respira')) {
+        if (joined.includes('agresion') || joined.includes('golpe') || joined.includes('pego')) {
+          setRestorativeAgreement('Pausa guiada en el rincón de la calma, ejercicio de respiración y diálogo restaurativo mediado para restablecer la sana convivencia.');
+        } else if (joined.includes('material') || joined.includes('tijera') || joined.includes('cuaderno')) {
+          setRestorativeAgreement('El estudiante organiza y repara el material escolar del aula, dialoga con el docente sobre el cuidado de los recursos y retoma la actividad escolar.');
+        } else {
+          setRestorativeAgreement('Acuerdo de escucha atenta con el docente, pausa de autorregulación y compromiso de pedir la palabra levantando la mano.');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSuggestingPlan(false);
+    }
+  };
 
   // History Filter
   const [filterStudentId, setFilterStudentId] = useState<string>('todos');
@@ -278,6 +327,19 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden min-h-[44px]"
               />
 
+              {/* Yacita AI Rewrite for Expected Behavior */}
+              <div className="mt-1.5">
+                <YacitaRewriteButton
+                  currentText={expectedBehavior}
+                  field="antecedent"
+                  onApply={(improved) => setExpectedBehavior(improved)}
+                  context={{
+                    studentName: currentSelectedStudent?.fullName,
+                    grade: currentSelectedStudent?.grade,
+                  }}
+                />
+              </div>
+
               {/* Suggestions */}
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mr-1">
@@ -400,18 +462,45 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 placeholder="Ej. Rasgó la hoja de trabajo al no poder borrar..."
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-[44px]"
               />
+
+              {/* Yacita AI Rewrite for Behavior Description */}
+              <div className="mt-1.5">
+                <YacitaRewriteButton
+                  currentText={otherBehaviorDetail || selectedBehaviors.join('; ')}
+                  field="behavior"
+                  onApply={(improved) => setOtherBehaviorDetail(improved)}
+                  context={{
+                    studentName: currentSelectedStudent?.fullName,
+                    grade: currentSelectedStudent?.grade,
+                  }}
+                />
+              </div>
             </div>
           </div>
 
           {/* [C] CONSECUENCIA / PLAN REGULADOR */}
           <div className="p-4 sm:p-5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                C
-              </span>
-              <h4 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm sm:text-base">
-                [C] CONSECUENCIA / PLAN REGULADOR (Enfoque Formativo y Restaurativo)
-              </h4>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/60 dark:border-emerald-900/40 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
+                  C
+                </span>
+                <h4 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm sm:text-base">
+                  [C] CONSECUENCIA / PLAN REGULADOR (Enfoque Formativo y Restaurativo)
+                </h4>
+              </div>
+
+              {/* Yacita AI Smart Suggestion Button */}
+              <button
+                type="button"
+                onClick={handleSuggestPlanWithYacita}
+                disabled={isSuggestingPlan}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs shrink-0 self-start sm:self-auto cursor-pointer"
+                title="Yacita evaluará las conductas marcadas y sugerirá la mejor combinación restaurativa"
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>{isSuggestingPlan ? 'Yacita evaluando...' : '💡 Yacita: Sugerir plan restaurativo'}</span>
+              </button>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -452,6 +541,18 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 placeholder="Pacto concertado con el estudiante (reparación del material, respiración guiada, disculpa)..."
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-none"
               />
+
+              <div className="mt-1.5">
+                <YacitaRewriteButton
+                  currentText={restorativeAgreement}
+                  field="commitments"
+                  onApply={(improved) => setRestorativeAgreement(improved)}
+                  context={{
+                    studentName: currentSelectedStudent?.fullName,
+                    grade: currentSelectedStudent?.grade,
+                  }}
+                />
+              </div>
             </div>
 
             <div>
@@ -465,6 +566,18 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 placeholder="Observaciones finales del docente..."
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 resize-none"
               />
+
+              <div className="mt-1.5">
+                <YacitaRewriteButton
+                  currentText={teacherObservations}
+                  field="general"
+                  onApply={(improved) => setTeacherObservations(improved)}
+                  context={{
+                    studentName: currentSelectedStudent?.fullName,
+                    grade: currentSelectedStudent?.grade,
+                  }}
+                />
+              </div>
             </div>
           </div>
 

@@ -44,12 +44,12 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Institutional Membrete (Zero-Overlap Rigid Box) */}
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-5 w-full md:w-auto text-center sm:text-left">
-            {/* Logo Container - Rígido e Independiente */}
-            <div className="shrink-0 flex items-center justify-center p-1.5 rounded-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs">
-              <img
-                src="denzil.png"
-                alt="Escudo I.E. Denzil Escolar"
-                className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0"
+            {/* Logo Container - Escudo Oficial */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-white border border-blue-200 shadow-sm">
+              <img 
+                src="denzil.png" 
+                alt="Escudo Institución Educativa Denzil Escolar" 
+                className="w-full h-full object-contain p-0.5" 
               />
             </div>
 

@@ -10,6 +10,7 @@ import {
   Calendar,
   User,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import {
   Student,
@@ -19,6 +20,7 @@ import {
   TeacherProfile,
 } from '../types';
 import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport';
+import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
 
 interface OfficialReportModalProps {
   isOpen: boolean;
@@ -42,6 +44,25 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   const printAreaRef = useRef<HTMLDivElement>(null);
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [exportNotice, setExportNotice] = useState<string>('');
+  const [parentSummary, setParentSummary] = useState<string>('');
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
+
+  const handleGenerateParentSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const summary = await generateParentSummaryWithYacita({
+        studentName: student.fullName,
+        scores: dailyScore ? { c1: dailyScore.c1, c2: dailyScore.c2, c3: dailyScore.c3, c4: dailyScore.c4 } : undefined,
+        incidentDescription: incident ? `${incident.trigger}. ${incident.observedBehaviors?.join(', ')}. ${incident.otherBehaviorDetail || ''}` : undefined,
+        commitments: incident?.restorativeAgreement,
+      });
+      setParentSummary(summary);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -61,6 +82,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         incident,
         dailyScore,
         teacherName: teacher.name,
+        parentSummary,
       });
       setExportNotice('¡Documento Word (.docx) descargado con éxito!');
       setTimeout(() => setExportNotice(''), 3500);
@@ -114,6 +136,17 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
+            {/* Yacita Parent Report Button */}
+            <button
+              onClick={handleGenerateParentSummary}
+              disabled={isGeneratingSummary}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white transition-colors shadow-xs min-h-[44px]"
+              title="Redactar un informe empático y propositivo para la familia con Yacita"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+              <span>{isGeneratingSummary ? 'Redactando...' : '🪄 Redactar informe para acudiente con Yacita'}</span>
+            </button>
+
             {/* Word .docx Export */}
             <button
               onClick={handleDownloadDocx}
@@ -176,11 +209,11 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             <div className="border-b-2 border-black pb-4 mb-5">
               <div className="flex items-center justify-between gap-4">
                 {/* Shield - Rigid Box strictly using 'denzil.png' */}
-                <div className="shrink-0 flex items-center justify-center">
-                  <img
-                    src="denzil.png"
-                    alt="Escudo I.E. Denzil Escolar"
-                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0"
+                <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-white border border-blue-200 shadow-sm">
+                  <img 
+                    src="denzil.png" 
+                    alt="Escudo Institución Educativa Denzil Escolar" 
+                    className="w-full h-full object-contain p-0.5" 
                   />
                 </div>
 
@@ -352,6 +385,34 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                   {incident?.teacherObservations || dailyScore?.notes || 'Evolución formativa favorable en el entorno de aula.'}
                 </p>
               </div>
+            </div>
+
+            {/* SÍNTESIS FORMATIVA PARA LA FAMILIA / ACUDIENTE (YACITA AI) */}
+            <div className="mb-5 p-3.5 bg-amber-50/80 border border-amber-300 rounded-lg">
+              <div className="flex items-center justify-between gap-2 border-b border-amber-300 pb-1.5 mb-2">
+                <h4 className="text-[11pt] font-bold uppercase text-amber-950 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600 no-print" />
+                  Informe Formativo para la Familia / Acudiente:
+                </h4>
+                <button
+                  type="button"
+                  onClick={handleGenerateParentSummary}
+                  disabled={isGeneratingSummary}
+                  className="no-print inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 px-2.5 py-1 rounded transition-colors shadow-2xs"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-700" />
+                  <span>{parentSummary ? 'Regenerar con Yacita' : '🪄 Redactar informe para acudiente con Yacita'}</span>
+                </button>
+              </div>
+              <p className="text-[10.5pt] leading-relaxed text-slate-900 italic font-normal">
+                {parentSummary ? (
+                  parentSummary
+                ) : (
+                  <span className="text-slate-500 not-italic no-print block py-1">
+                    Pulsa el botón superior «🪄 Redactar informe para acudiente con Yacita» para que Yacita elabore una síntesis empática, clara y propositiva equilibrando los avances con los acuerdos de convivencia para la familia.
+                  </span>
+                )}
+              </p>
             </div>
 
             {/* 4. COMPROMISOS Y FIRMAS (3 COLUMNAS FORMALES) */}
