@@ -20,7 +20,16 @@ import {
   Award,
   Compass,
 } from 'lucide-react';
-import yacitaImg from '../assets/yacita.png';
+import yacitaIdle from '../assets/idle.png';
+import yacitaSaludo from '../assets/saludo.png';
+import yacitaHablando from '../assets/hablando.png';
+import yacitaPensando from '../assets/pensando.png';
+import yacitaCelebrando from '../assets/celebrando.png';
+import yacitaEmpatica from '../assets/empatica.png';
+import yacitaApuntando from '../assets/apuntando_notas.png';
+import yacitaPulgar from '../assets/pulgar_arriba.png';
+import yacitaSenalando from '../assets/senalando.png';
+import yacitaParpadeo from '../assets/parpadeo.png';
 import { chatWithYacita } from '../utils/yacitaAI';
 import {
   getTeacherFirstName,
@@ -374,6 +383,29 @@ export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
     return 'animate-yacita-idle';
   }, [reaction, isTyping]);
 
+  // Periodic natural blinking
+  const [isBlinking, setIsBlinking] = useState(false);
+
+  useEffect(() => {
+    const blinkInterval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 220);
+    }, 4500);
+    return () => clearInterval(blinkInterval);
+  }, []);
+
+  // Compute active expressive pose image
+  const activeYacitaImg = useMemo(() => {
+    if (isLoading) return yacitaPensando;
+    if (reaction === 'celebrate') return yacitaCelebrando;
+    if (reaction === 'support') return yacitaEmpatica;
+    if (isTourActive) return yacitaSenalando;
+    if (currentTab === 'students' && isBubbleVisible) return yacitaApuntando;
+    if (reaction === 'speaking' || isTyping) return yacitaHablando;
+    if (isBlinking) return yacitaParpadeo;
+    return yacitaIdle;
+  }, [isLoading, reaction, isTourActive, currentTab, isBubbleVisible, isTyping, isBlinking]);
+
   // Avoid SSR portal issues
   if (typeof document === 'undefined') return null;
 
@@ -531,7 +563,7 @@ export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 shrink-0 flex items-center justify-center">
                 <img
-                  src={yacitaImg}
+                  src={yacitaSaludo}
                   alt="Yacita"
                   className="w-full h-full object-contain"
                 />
@@ -720,7 +752,7 @@ export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
             className="w-12 h-12 rounded-full border-2 border-amber-400 bg-white dark:bg-[#0f1b3b] shadow-xl overflow-hidden flex items-center justify-center transition-transform hover:scale-105"
             title="Tocar para hablar con Yacita"
           >
-            <img src={yacitaImg} alt="Yacita" className="w-full h-full object-contain" />
+            <img src={yacitaIdle} alt="Yacita" className="w-full h-full object-contain" />
           </button>
         ) : (
           /* Full Avatar Representation */
@@ -745,7 +777,7 @@ export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
               aria-label="Abrir asistente pedagógica Yacita"
             >
               <img
-                src={yacitaImg}
+                src={activeYacitaImg}
                 alt="Yacita"
                 className="w-[84px] h-[84px] sm:w-[112px] sm:h-[112px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)] select-none pointer-events-none"
                 draggable={false}
