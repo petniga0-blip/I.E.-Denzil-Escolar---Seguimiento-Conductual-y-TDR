@@ -303,10 +303,16 @@ Responde en 2 o 3 párrafos concisos con estrategias pedagógicas prácticas, ap
 });
 
 // TTS Endpoint (Optional premium voice powered by Gemini TTS, Kore prebuilt voice)
+let ttsCooldownUntil = 0;
 app.post('/api/yacita/tts', async (req: Request, res: Response) => {
   const { text } = req.body;
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ error: 'Text is required' });
+  }
+
+  // If currently in quota cooldown or rate limited, return 503 immediately without calling the API
+  if (Date.now() < ttsCooldownUntil) {
+    return res.status(503).json({ error: 'Server TTS temporarily unavailable (quota cooldown)' });
   }
 
   if (aiClient) {
@@ -340,8 +346,19 @@ app.post('/api/yacita/tts', async (req: Request, res: Response) => {
       if (audio) {
         return res.json({ audio, mimeType: 'audio/pcm;rate=24000', source: 'gemini' });
       }
-    } catch (err) {
-      console.warn('Gemini TTS error (will fallback to browser Web Speech API):', err);
+    } catch (err: any) {
+      // Check for rate limit / quota exhaustion (429 or RESOURCE_EXHAUSTED)
+      const errStr = String(err?.message || err);
+      const isQuota =
+        err?.status === 429 ||
+        err?.code === 429 ||
+        errStr.includes('429') ||
+        errStr.includes('RESOURCE_EXHAUSTED') ||
+        errStr.includes('quota');
+      if (isQuota) {
+        ttsCooldownUntil = Date.now() + 60000; // 60-second cooldown
+      }
+      // Silently fall back to browser Web Speech API without emitting error logs to stderr
     }
   }
 

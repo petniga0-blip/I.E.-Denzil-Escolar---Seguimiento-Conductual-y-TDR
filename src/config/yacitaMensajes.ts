@@ -581,6 +581,70 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
     burbujaCorta: 'Filtra la matriz para calificar la jornada escolar correspondiente.',
     textoVoz: 'Filtra la matriz para calificar la jornada escolar correspondiente.',
   },
+  'matrix_search_input': {
+    id: 'matrix_search_input',
+    etiqueta: 'Buscador de Estudiantes en Matriz',
+    funcion: 'Permite encontrar rápidamente a un estudiante por su nombre o apellidos.',
+    consejos: [
+      'Escribe parte del nombre para ver su tarjeta de evaluación de inmediato.',
+      'Limpia el campo con la equis para volver a ver a todo el grupo del salón.',
+    ],
+    burbujaCorta: 'Busca a un alumno por su nombre para calificarlo al instante.',
+    textoVoz: 'Busca a un alumno por su nombre para calificarlo al instante.',
+  },
+  'matrix_search_clear': {
+    id: 'matrix_search_clear',
+    etiqueta: 'Limpiar Búsqueda en Matriz',
+    funcion: 'Borra el texto del buscador para restablecer la lista completa de estudiantes.',
+    consejos: [
+      'Vuelve a mostrar todos los alumnos del curso seleccionado.',
+    ],
+    burbujaCorta: 'Limpia el buscador para ver de nuevo todo el grupo.',
+    textoVoz: 'Limpia el buscador para ver de nuevo todo el grupo.',
+  },
+  'matrix_filter_novelties': {
+    id: 'matrix_filter_novelties',
+    etiqueta: 'Filtro Solo con Novedades',
+    funcion: 'Filtra la lista para mostrar únicamente a estudiantes con niveles de apoyo (1★, 2★) u observaciones.',
+    consejos: [
+      'Ideal para revisar casos que requieren acompañamiento o pacto restaurativo.',
+      'Permite un seguimiento focalizado tras haber marcado a todo el grupo en Logrado.',
+    ],
+    burbujaCorta: 'Muestra solo los casos con alertas formativas o que requieren apoyo.',
+    textoVoz: 'Muestra sólo los casos con alertas formativas o que requieren apoyo.',
+  },
+  'matrix_btn_actions_menu': {
+    id: 'matrix_btn_actions_menu',
+    etiqueta: 'Menú de Acciones de la Matriz',
+    funcion: 'Abre opciones grupales rápidas como marcar a todos en Logrado o consultar convenciones.',
+    consejos: [
+      'Agrupa herramientas clave en pantallas móviles para ahorrar espacio vertical.',
+      'Permite marcar a todos y luego ajustar solo las novedades individuales.',
+    ],
+    burbujaCorta: 'Abre las acciones colectivas de la matriz en versión móvil.',
+    textoVoz: 'Abre las acciones colectivas de la matriz en versión móvil.',
+  },
+  'matrix_btn_mark_all_secondary': {
+    id: 'matrix_btn_mark_all_secondary',
+    etiqueta: 'Marcar Todos Logrado (Menú Acciones)',
+    funcion: 'Asigna Logrado (3★) a todos los estudiantes visibles desde el menú móvil.',
+    consejos: [
+      'Abre la confirmación para indicar cuántos criterios y estudiantes se marcarán.',
+      'Dispondrás de 5 segundos para deshacer la acción.',
+    ],
+    burbujaCorta: 'Asigna tres estrellas a todo el grupo desde el menú móvil.',
+    textoVoz: 'Asigna tres estrellas a todo el grupo desde el menú móvil.',
+  },
+  'matrix_btn_view_conventions': {
+    id: 'matrix_btn_view_conventions',
+    etiqueta: 'Ver Convenciones Formativas',
+    funcion: 'Abre el panel explicativo de la escala formativa de 3 niveles de la I.E. Denzil Escolar.',
+    consejos: [
+      'Revisa los criterios para Logrado, En Proceso y Requiere Apoyo.',
+    ],
+    burbujaCorta: 'Consulta el detalle de los tres niveles formativos institucionales.',
+    textoVoz: 'Consulta el detalle de los tres niveles formativos institucionales.',
+  },
   'matrix_btn_mark_all': {
     id: 'matrix_btn_mark_all',
     etiqueta: 'Marcar Todos Logrado',
@@ -591,6 +655,36 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
     ],
     burbujaCorta: 'Marca 3 estrellas para todos. Agiliza y ajusta luego casos puntuales.',
     textoVoz: 'Marca tres estrellas para todos. Agiliza y ajusta luego casos puntuales.',
+  },
+  'matrix_confirm_mark_all': {
+    id: 'matrix_confirm_mark_all',
+    etiqueta: 'Confirmar Marcar Todos',
+    funcion: 'Confirma la asignación de Logrado (3★) a todos los estudiantes visibles.',
+    consejos: [
+      'Dispondrás de 5 segundos para deshacer la acción si fue involuntaria.',
+    ],
+    burbujaCorta: 'Confirma la valoración grupal. Tendrás 5 segundos para deshacer.',
+    textoVoz: 'Confirma la valoración grupal. Tendrás cinco segundos para deshacer.',
+  },
+  'matrix_confirm_cancel': {
+    id: 'matrix_confirm_cancel',
+    etiqueta: 'Cancelar Valoración Grupal',
+    funcion: 'Cierra el cuadro de confirmación sin aplicar cambios a la matriz.',
+    consejos: [
+      'Mantiene la matriz exactamente como estaba.',
+    ],
+    burbujaCorta: 'Cancela sin realizar cambios en la matriz.',
+    textoVoz: 'Cancela sin realizar cambios en la matriz.',
+  },
+  'matrix_undo_mark_all': {
+    id: 'matrix_undo_mark_all',
+    etiqueta: 'Deshacer Marcar Todos',
+    funcion: 'Restaura el estado previo de los estudiantes antes de marcar todos.',
+    consejos: [
+      'Revierte la asignación masiva de manera inmediata.',
+    ],
+    burbujaCorta: 'Restaura el estado previo de la matriz.',
+    textoVoz: 'Restaura el estado previo de la matriz.',
   },
   'matrix_c1': {
     id: 'matrix_c1',
@@ -690,6 +784,17 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
     ],
     burbujaCorta: 'Abre el Registro A-B-C para acordar un plan restaurativo sin culpas.',
     textoVoz: 'Abre el Registro A, B, C para acordar un plan restaurativo sin culpas.',
+  },
+  'matrix_legend_button': {
+    id: 'matrix_legend_button',
+    etiqueta: 'Convenciones Formativas',
+    funcion: 'Explica el significado de los tres niveles formativos: Logrado (3★), En Proceso (2★) y Requiere Apoyo (1★).',
+    consejos: [
+      'Recuerda que las tres estrellas promueven la autorregulación armónica.',
+      'El nivel 1 alerta para generar un pacto formativo en Registro A-B-C.',
+    ],
+    burbujaCorta: 'Consulta qué significa cada nivel de valoración en la escala formativa institucional.',
+    textoVoz: 'Consulta qué significa cada nivel de valoración en la escala formativa institucional.',
   },
 
   // --- PESTAÑA 3: REGISTRO Y TDR (A-B-C) ---
@@ -831,6 +936,28 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
   },
 
   // --- PESTAÑA 4: REPORTES OFICIALES ---
+  'reports_format_carta': {
+    id: 'reports_format_carta',
+    etiqueta: 'Formato Acta Carta Oficial (TDR)',
+    funcion: 'Muestra el documento formal tamaño Carta de página completa con membrete institucional.',
+    consejos: [
+      'Ideal para archivar en la carpeta de convivencia institucional o remitir a rectoría.',
+      'Incluye membrete legal completo, identificación, valoración y firmas.',
+    ],
+    burbujaCorta: 'Acta formal de convivencia tamaño Carta con membrete oficial 2026.',
+    textoVoz: 'Acta formal de convivencia tamaño Carta con membrete oficial dos mil veintiséis.',
+  },
+  'reports_format_cuaderno': {
+    id: 'reports_format_cuaderno',
+    etiqueta: 'Ficha para Cuaderno (2 por hoja)',
+    funcion: 'Genera dos fichas idénticas por hoja Carta vertical con línea de corte para pegar en el cuaderno.',
+    consejos: [
+      'Permite cortar la hoja al medio: una copia va al cuaderno del alumno y otra al registro.',
+      'Diseño compacto con membrete de 35px, 4 metas con estrellas y firmas del hogar.',
+    ],
+    burbujaCorta: 'Dos fichas compactas por hoja Carta para pegar en el cuaderno del estudiante.',
+    textoVoz: 'Dos fichas compactas por hoja Carta para pegar en el cuaderno del estudiante.',
+  },
   'reports_student_select': {
     id: 'reports_student_select',
     etiqueta: 'Seleccionar Estudiante en Reportes',
@@ -908,6 +1035,27 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
     burbujaCorta: 'Sube el reporte formal a tu carpeta de Google Drive institucional.',
     textoVoz: 'Sube el reporte formal a tu carpeta de Google Drive institucional.',
   },
+  'reports_btn_print': {
+    id: 'reports_btn_print',
+    etiqueta: 'Imprimir Reporte Oficial',
+    funcion: 'Abre el cuadro de diálogo de impresión del navegador para el acta o tarjeta TDR.',
+    consejos: [
+      'Garantiza orientación Carta vertical y membretes institucionales oficiales.',
+      'En formato cuaderno imprime dos fichas idénticas para recortar y anexar.',
+    ],
+    burbujaCorta: 'Imprime el documento formal con membrete institucional.',
+    textoVoz: 'Imprime el documento formal con membrete institucional.',
+  },
+  'abc_btn_open_report': {
+    id: 'abc_btn_open_report',
+    etiqueta: 'Generar Reporte Oficial TDR',
+    funcion: 'Abre el acta oficial del incidente seleccionado con membrete institucional y compromisos.',
+    consejos: [
+      'Permite descargar en PDF formal, Word editable o imprimir la tarjeta diaria.',
+    ],
+    burbujaCorta: 'Genera el reporte oficial TDR para este incidente.',
+    textoVoz: 'Genera el reporte oficial TDR para este incidente.',
+  },
 
   // --- ENCABEZADO ---
   'header_profile': {
@@ -964,6 +1112,16 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
     ],
     burbujaCorta: 'Cambia el tema visual entre claro y oscuro para mayor comodidad.',
     textoVoz: 'Cambia el tema visual entre claro y oscuro para mayor comodidad.',
+  },
+  'header_menu': {
+    id: 'header_menu',
+    etiqueta: 'Menú Institucional',
+    funcion: 'Despliega las opciones institucionales de perfil docente y respaldos.',
+    consejos: [
+      'Accede a tu cuenta de Google y respaldo de datos sin ocupar espacio en pantalla.',
+    ],
+    burbujaCorta: 'Abre el menú con opciones de cuenta y respaldos institucionales.',
+    textoVoz: 'Abre el menú con opciones de cuenta y respaldos institucionales.',
   },
 
   // --- NAVEGACIÓN ---

@@ -87,7 +87,7 @@ export const YacitaRewriteButton: React.FC<YacitaRewriteButtonProps> = ({
             <button
               type="button"
               onClick={handleDiscard}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <X className="w-3 h-3" />
               <span>Descartar</span>
@@ -96,7 +96,7 @@ export const YacitaRewriteButton: React.FC<YacitaRewriteButtonProps> = ({
             <button
               type="button"
               onClick={handleAccept}
-              className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold bg-blue-700 hover:bg-blue-800 text-white shadow-xs transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-bold bg-blue-700 hover:bg-blue-800 text-white shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <Check className="w-3 h-3" />
               <span>Aceptar sugerencia</span>

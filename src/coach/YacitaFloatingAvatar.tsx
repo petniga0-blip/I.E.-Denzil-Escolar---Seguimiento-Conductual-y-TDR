@@ -13,6 +13,7 @@ import {
   Bug,
   Play,
   Check,
+  FastForward,
 } from 'lucide-react';
 import { useYacitaCoach } from './YacitaCoachContext';
 import { chatWithYacita } from '../utils/yacitaAI';
@@ -101,6 +102,21 @@ export const YacitaFloatingAvatar: React.FC = () => {
   // Detect whether any Sheet is open in DOM to adjust avatar size & position
   const [hasOpenSheet, setHasOpenSheet] = useState(false);
   const [hasFullScreenSheet, setHasFullScreenSheet] = useState(false);
+
+  // Respect system prefers-reduced-motion (sin typewriter ni flotado)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mq) return;
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
 
   useEffect(() => {
     const checkSheets = () => {
@@ -244,12 +260,12 @@ export const YacitaFloatingAvatar: React.FC = () => {
     !isDialogueInModalPanel &&
     coachingLevel !== 'silencioso';
 
-  // MINIMIZED STATE: circular 48px avatar with authentic PNG image
+  // MINIMIZED STATE: circular compact avatar with authentic PNG image
   if (isMinimized) {
     return (
       <div
         data-yacita-ignore="true"
-        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-6 right-3 sm:right-6 z-[9990] no-print flex flex-col items-end gap-2"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+14px)] sm:bottom-4 right-3 sm:right-4 z-[9990] no-print flex flex-col items-end gap-2"
       >
         {/* Floating bubble even when minimized unless coaching level is silencioso */}
         {shouldShowFloatingBubble && (
@@ -258,27 +274,54 @@ export const YacitaFloatingAvatar: React.FC = () => {
             onClick={skipVoiceAndComplete}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="mb-2 w-[280px] sm:w-[320px] max-w-[calc(100vw-24px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 duration-150 cursor-pointer text-xs"
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+            onTouchCancel={() => setIsPaused(false)}
+            onPointerEnter={() => setIsPaused(true)}
+            onPointerLeave={() => setIsPaused(false)}
+            className="mb-2 w-[min(calc(100vw-24px),290px)] sm:w-[290px] max-w-[290px] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 duration-150 motion-reduce:animate-none cursor-pointer text-xs"
             role="region"
             aria-live="polite"
           >
             <div className="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-amber-100 dark:border-slate-800">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
                 YACITA
               </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dismissBubble();
-                }}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                {(isSpeaking || isTyping) && (
+                  <button
+                    type="button"
+                    data-yacita-ignore="true"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      skipVoiceAndComplete();
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 text-amber-800 dark:text-amber-300 text-xs font-bold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-blue-500"
+                    title="Saltar animación y ver texto completo"
+                    aria-label="Saltar animación y ver texto completo"
+                  >
+                    <FastForward className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Saltar</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  data-yacita-ignore="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissBubble();
+                  }}
+                  className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  title="Cerrar mensaje"
+                  aria-label="Cerrar mensaje"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <p className="leading-snug font-medium line-clamp-3">
+            <p className="leading-snug font-medium break-words text-xs max-h-[140px] overflow-y-auto no-scrollbar">
               {displayedText}
-              {(isSpeaking || isTyping) && (
+              {(isSpeaking || isTyping) && !prefersReducedMotion && (
                 <span className="inline-block w-1.5 h-3 ml-0.5 bg-amber-500 animate-pulse align-middle" />
               )}
             </p>
@@ -287,16 +330,20 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
         <button
           onClick={() => setIsMinimized(false)}
-          className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white dark:bg-[#131f42] p-1 shadow-2xl border-2 border-amber-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer group"
+          className={`relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white dark:bg-[#131f42] p-1 shadow-2xl border-2 border-amber-500 ${
+            prefersReducedMotion ? '' : 'hover:scale-105 active:scale-95 transition-transform'
+          } motion-reduce:transform-none motion-reduce:transition-none flex items-center justify-center cursor-pointer group`}
           title="Expandir a Yacita (Acompañante Pedagógico)"
           aria-label="Expandir a Yacita"
         >
           <img
             src={yacitaIdle}
             alt="Yacita Minimizado"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-contain rounded-full aspect-square"
           />
-          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
         </button>
       </div>
     );
@@ -310,63 +357,90 @@ export const YacitaFloatingAvatar: React.FC = () => {
       >
         {/* Toast confirmation feedback for voice / periodic switches */}
         {toastMessage && (
-          <div className="pointer-events-auto fixed top-18 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-slate-900/95 text-white text-xs font-semibold shadow-2xl border border-amber-500/60 animate-in fade-in zoom-in-95 duration-150 z-[10000]">
+          <div className="pointer-events-auto fixed top-18 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-slate-900/95 text-white text-xs font-semibold shadow-2xl border border-amber-500/60 animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none z-[10000]">
             {toastMessage}
           </div>
         )}
 
-        {/* DIALOGUE BUBBLE: TOAST FORMAT WITH DYNAMIC COLLISION PLACEMENT */}
+        {/* DIALOGUE BUBBLE: COMPACT CORNER TOAST WITH STRICT MAX WIDTH & ESCAPE/COLLISION */}
         {shouldShowFloatingBubble && !hasFullScreenSheet && (
           <div
             data-yacita-bubble="true"
             onClick={skipVoiceAndComplete}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+            onTouchCancel={() => setIsPaused(false)}
+            onPointerEnter={() => setIsPaused(true)}
+            onPointerLeave={() => setIsPaused(false)}
             className={`pointer-events-auto fixed ${
               bubblePlacement === 'top'
-                ? 'top-16 sm:top-20 right-3 sm:right-6'
+                ? 'top-16 sm:top-20 right-3 sm:right-4'
                 : hasOpenSheet
-                ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+126px)] right-3 w-[min(90vw,310px)]'
-                : 'bottom-[calc(env(safe-area-inset-bottom,0px)+150px)] landscape:bottom-[78px] sm:bottom-[120px] right-3 sm:right-6 landscape:max-w-[310px]'
-            } w-[min(92vw,340px)] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 sm:p-3.5 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 fade-in duration-200 cursor-pointer z-[9995]`}
+                ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+60px)] right-3 w-[min(calc(100vw-24px),280px)]'
+                : 'bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4'
+            } w-[min(calc(100vw-24px),290px)] sm:w-[290px] max-w-[290px] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 sm:p-3.5 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none cursor-pointer z-[9995]`}
             role="region"
             aria-live="polite"
             title="Toca para completar el texto y la voz de inmediato"
           >
-            {/* Header: Clean YACITA label + animated equalizer sound bars */}
-            <div className="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-amber-100 dark:border-slate-800">
+            {/* Header: Clean YACITA label + equalizer + skip button + close button */}
+            <div className="flex items-center justify-between gap-1 pb-1.5 mb-1.5 border-b border-amber-100 dark:border-slate-800">
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
                   YACITA
                 </span>
 
-                {/* Animated Equalizer sound bars while speaking */}
+                {/* Equalizer sound bars while speaking */}
                 {isSpeaking && (
                   <div className="flex items-end gap-0.5 h-3.5 px-1">
-                    <span className="w-1 bg-emerald-500 rounded-full eq-bar-1" />
-                    <span className="w-1 bg-emerald-500 rounded-full eq-bar-2" />
-                    <span className="w-1 bg-emerald-500 rounded-full eq-bar-3" />
+                    <span className={`w-1 bg-emerald-500 rounded-full ${prefersReducedMotion ? 'h-2' : 'eq-bar-1'}`} />
+                    <span className={`w-1 bg-emerald-500 rounded-full ${prefersReducedMotion ? 'h-3' : 'eq-bar-2'}`} />
+                    <span className={`w-1 bg-emerald-500 rounded-full ${prefersReducedMotion ? 'h-2.5' : 'eq-bar-3'}`} />
                   </div>
                 )}
               </div>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dismissBubble();
-                }}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                title="Cerrar burbuja"
-                aria-label="Cerrar mensaje"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Botón explícito para saltar animación y ver texto completo */}
+                {(isSpeaking || isTyping) && (
+                  <button
+                    type="button"
+                    data-yacita-ignore="true"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      skipVoiceAndComplete();
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 text-xs font-bold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-blue-500"
+                    title="Saltar animación y ver texto completo"
+                    aria-label="Saltar animación y ver texto completo"
+                  >
+                    <FastForward className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Saltar</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  data-yacita-ignore="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissBubble();
+                  }}
+                  className="p-1 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-blue-500"
+                  title="Cerrar burbuja"
+                  aria-label="Cerrar mensaje"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Message Text (max 3 lines, text 13-14px) */}
-            <p className="text-[13px] sm:text-sm leading-snug font-medium text-slate-700 dark:text-slate-200 line-clamp-3">
+            {/* Message Text (break-words, nunca cortado con 'Aquí▌' ni line-clamp) */}
+            <p className="text-[13px] sm:text-sm leading-snug font-medium text-slate-700 dark:text-slate-200 break-words max-h-[160px] overflow-y-auto no-scrollbar">
               {displayedText}
-              {(isSpeaking || isTyping) && (
+              {(isSpeaking || isTyping) && !prefersReducedMotion && (
                 <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-amber-500 animate-pulse align-middle" />
               )}
             </p>
@@ -377,12 +451,13 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 {currentBubble.botones.map((btn) => (
                   <button
                     key={btn.actionId}
+                    data-yacita-ignore="true"
                     onClick={(e) => {
                       e.stopPropagation();
                       btn.onClick?.();
                       dismissBubble();
                     }}
-                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors shadow-2xs min-h-[36px] ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors shadow-2xs min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-blue-500 ${
                       btn.variant === 'secondary'
                         ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
                         : 'bg-amber-500 hover:bg-amber-600 text-white'
@@ -398,13 +473,14 @@ export const YacitaFloatingAvatar: React.FC = () => {
             {currentBubble.allowDoNotShowAgain && !isSpeaking && !isTyping && (
               <div className="mt-1.5 pt-1 flex justify-end">
                 <button
+                  data-yacita-ignore="true"
                   onClick={(e) => {
                     e.stopPropagation();
                     dismissTipForever(currentBubble.id);
                   }}
-                  className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                  className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 dark:text-slate-300 dark:hover:text-red-400 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                 >
-                  <EyeOff className="w-3 h-3" />
+                  <EyeOff className="w-3.5 h-3.5" />
                   <span>No volver a mostrar</span>
                 </button>
               </div>
@@ -413,7 +489,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
             {/* Speech tail pointing to Yacita */}
             {bubblePlacement === 'bottom' && (
               <div
-                className="absolute -bottom-2 right-8 w-4 h-4 bg-white dark:bg-[#111c3d] border-r-2 border-b-2 border-amber-400 dark:border-amber-500 transform rotate-45"
+                className="absolute -bottom-2 right-6 w-3.5 h-3.5 bg-white dark:bg-[#111c3d] border-r-2 border-b-2 border-amber-400 dark:border-amber-500 transform rotate-45"
                 aria-hidden="true"
               />
             )}
@@ -423,10 +499,10 @@ export const YacitaFloatingAvatar: React.FC = () => {
         {/* MICRO-FEEDBACK BADGE */}
         {microFeedback && !currentBubble && !isChatOpen && (
           <div
-            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+145px)] sm:bottom-28 right-4 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 flex items-center gap-1.5 z-[9994]"
+            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none flex items-center gap-1.5 z-[9994]"
             role="status"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+            <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${prefersReducedMotion ? '' : 'animate-spin'}`} />
             <span>{microFeedback.text}</span>
           </div>
         )}
@@ -435,7 +511,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
         {isMenuOpen && (
           <div
             data-yacita-ignore="true"
-            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+150px)] landscape:bottom-[75px] sm:bottom-[115px] right-3 sm:right-6 bg-white/95 dark:bg-[#0f1938]/95 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in zoom-in-95 fade-in duration-150 z-[9994] flex items-center gap-1 max-h-[56px]"
+            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4 bg-white/95 dark:bg-[#0f1938]/95 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in zoom-in-95 fade-in duration-150 motion-reduce:animate-none z-[9994] flex items-center gap-1 max-h-[56px]"
           >
             {/* Quick 1: Voice Toggle */}
             <button
@@ -493,44 +569,51 @@ export const YacitaFloatingAvatar: React.FC = () => {
           </div>
         )}
 
-        {/* YACITA AVATAR BUTTON (Reduced to 56–64px when panel open, 72–84px vertical, 56–64px landscape) */}
-        {/* If full screen sheet is open, hide floating avatar so header Help button takes over */}
+        {/* YACITA AVATAR BUTTON (Compact footprint: 56px mobile portrait, 48px landscape, 60px desktop) */}
+        {/* En móvil sobre bottom-nav sin tapar tarjetas; en escritorio pegado a la esquina sin cubrir columnas 4 y Acción */}
         <div
           data-yacita-avatar-area="true"
           className={`pointer-events-auto fixed ${
             hasFullScreenSheet
               ? 'hidden'
               : hasOpenSheet
-              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+64px)] right-3'
-              : 'bottom-[calc(env(safe-area-inset-bottom,0px)+70px)] landscape:bottom-3 sm:bottom-6 right-3 sm:right-6'
+              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] right-3'
+              : 'bottom-[calc(env(safe-area-inset-bottom,0px)+14px)] sm:bottom-4 landscape:bottom-2.5 right-3 sm:right-4'
           } flex items-end z-[9990]`}
         >
           <button
             onClick={handleAvatarClick}
             className={`relative ${
               hasOpenSheet
-                ? 'w-[58px] h-[58px]'
-                : 'w-[74px] h-[74px] landscape:w-[58px] landscape:h-[58px] sm:w-[84px] sm:h-[84px]'
-            } shrink-0 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-hidden group`}
+                ? 'w-12 h-12'
+                : 'w-14 h-14 landscape:w-12 landscape:h-12 sm:w-15 sm:h-15'
+            } shrink-0 ${
+              prefersReducedMotion ? '' : 'hover:scale-105 active:scale-95 transition-all duration-200'
+            } cursor-pointer focus:outline-hidden group motion-reduce:transform-none motion-reduce:transition-none`}
             title="Yacita: Acompañante Pedagógico (toca para ver opciones)"
             aria-label="Yacita Acompañante Pedagógico"
           >
-            {/* Subtle glow circle */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400/25 via-blue-500/15 to-emerald-400/25 blur-md group-hover:blur-lg transition-all" />
+            {/* Subtle glow circle (sin flotado) */}
+            <div className={`absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400/20 via-blue-500/10 to-emerald-400/20 ${
+              prefersReducedMotion ? '' : 'blur-md group-hover:blur-lg transition-all'
+            }`} />
 
             {/* Authentic Institutional PNG Expression - STRICTLY NO SVG */}
             <img
               src={activeImage}
               alt="Yacita Acompañante"
               className="w-full h-full object-contain aspect-square relative z-10 transition-opacity duration-300"
-              loading="eager"
+              loading="lazy"
+              decoding="async"
             />
 
             {/* Speaking/Typing active indicator dot */}
             {(isSpeaking || isTyping) && (
-              <span className="absolute bottom-1 right-2 z-20 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border border-white dark:border-slate-900" />
+              <span className="absolute bottom-1 right-1.5 z-20 flex h-3 w-3">
+                {!prefersReducedMotion && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 motion-reduce:hidden" />
+                )}
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white dark:border-slate-900" />
               </span>
             )}
           </button>
@@ -566,14 +649,14 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 <Volume2 className="w-4 h-4 text-emerald-600" />
                 Voz de Yacita
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+              <span className="text-xs text-slate-600 dark:text-slate-300 block">
                 {isVoiceEnabled ? 'Activada (te lee los mensajes)' : 'Desactivada (solo lectura visual)'}
               </span>
             </div>
             <button
               type="button"
               onClick={() => handleToggleVoiceAction()}
-              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-colors min-h-[44px] active:scale-95 ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-colors min-h-[44px] active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 isVoiceEnabled
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -590,14 +673,14 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 <Lightbulb className="w-4 h-4 text-amber-600" />
                 Sugerencias Periódicas
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+              <span className="text-xs text-slate-600 dark:text-slate-300 block">
                 {isPeriodicEnabled ? 'Activadas (consejos cada 45–90 s)' : 'Desactivadas (solo interactivos)'}
               </span>
             </div>
             <button
               type="button"
               onClick={() => handleTogglePeriodicAction()}
-              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-colors min-h-[44px] active:scale-95 ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-colors min-h-[44px] active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-500 ${
                 isPeriodicEnabled
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -618,10 +701,10 @@ export const YacitaFloatingAvatar: React.FC = () => {
                   key={lvl}
                   type="button"
                   onClick={() => setCoachingLevel(lvl)}
-                  className={`py-2 text-xs font-bold rounded-lg capitalize transition-colors min-h-[44px] flex items-center justify-center gap-1 active:scale-95 ${
+                  className={`py-2 text-xs font-bold rounded-lg capitalize transition-colors min-h-[44px] flex items-center justify-center gap-1 active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     coachingLevel === lvl
                       ? 'bg-amber-500 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800'
                   }`}
                 >
                   {coachingLevel === lvl && <Check className="w-3 h-3" />}
@@ -629,7 +712,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 px-1 leading-tight">
+            <p className="text-xs text-slate-600 dark:text-slate-300 px-1 leading-tight">
               {coachingLevel === 'completo' && 'Completo: orienta en cada clic, botón, filtro y campo.'}
               {coachingLevel === 'moderado' && 'Moderado: orienta solo al cambiar de pestaña o guardar.'}
               {coachingLevel === 'silencioso' && 'Silencioso: no muestra burbujas salvo que la consultes.'}
@@ -709,7 +792,13 @@ export const YacitaFloatingAvatar: React.FC = () => {
         subtitle="Orientación formativa y justicia restaurativa"
         icon={
           <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/60 p-0.5 flex items-center justify-center">
-            <img src={yacitaIdle} alt="Yacita" className="w-full h-full object-contain aspect-square" />
+            <img
+              src={yacitaIdle}
+              alt="Yacita"
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-contain aspect-square"
+            />
           </div>
         }
         footer={
@@ -745,7 +834,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 key={idx}
                 type="button"
                 onClick={() => handleSendMessage(q)}
-                className="shrink-0 text-[11px] px-2.5 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-amber-50 hover:border-amber-300 transition-colors min-h-[36px] active:scale-95"
+                className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-amber-50 hover:border-amber-300 transition-colors min-h-[44px] flex items-center active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 {q}
               </button>
@@ -768,13 +857,13 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 >
                   {msg.text}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 px-1">
+                <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 px-1">
                   {msg.timestamp}
                 </span>
               </div>
             ))}
             {isAiLoading && (
-              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500">
+              <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
                 <Sparkles className="w-4 h-4 text-amber-500 animate-spin shrink-0" />
                 <span>Yacita está redactando una orientación pedagógica...</span>
               </div>
@@ -793,11 +882,11 @@ export const YacitaFloatingAvatar: React.FC = () => {
           {!isDebugDrawerOpen ? (
             <button
               onClick={() => setIsDebugDrawerOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-xl text-xs font-bold hover:bg-slate-800 transition-colors min-h-[44px]"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-xl text-xs font-bold hover:bg-slate-800 transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-amber-400"
             >
               <Bug className="w-3.5 h-3.5 text-amber-400" />
               <span>Yacita Debug</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-900 text-[10px]">
+              <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold">
                 {debugEvents.length}
               </span>
             </button>
@@ -812,55 +901,56 @@ export const YacitaFloatingAvatar: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsDebugDrawerOpen(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="p-1 rounded-md text-slate-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-amber-400"
+                  aria-label="Cerrar panel de depuración"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Stats overview */}
-              <div className="grid grid-cols-3 gap-2 mb-3 text-center text-[10px]">
+              <div className="grid grid-cols-3 gap-2 mb-3 text-center text-xs">
                 <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
-                  <span className="block text-slate-400">Total Interac.</span>
+                  <span className="block text-slate-400 text-xs">Total Interac.</span>
                   <span className="font-bold text-amber-300 text-sm">{debugStats.total}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
-                  <span className="block text-slate-400">Con data-yacita</span>
+                  <span className="block text-slate-400 text-xs">Con data-yacita</span>
                   <span className="font-bold text-emerald-400 text-sm">{debugStats.withDataYacita}</span>
                 </div>
                 <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
-                  <span className="block text-slate-400">Genéricos</span>
+                  <span className="block text-slate-400 text-xs">Genéricos</span>
                   <span className="font-bold text-blue-400 text-sm">{debugStats.generic}</span>
                 </div>
               </div>
 
               {/* Simulation test buttons */}
               <div className="mb-3 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                   Simulación de Pruebas:
                 </span>
                 <div className="flex flex-wrap gap-1">
                   <button
                     onClick={() => simulateInteraction('nav_tab_matrix')}
-                    className="px-2.5 py-1.5 rounded-md bg-blue-900/60 hover:bg-blue-800 text-[10px] text-blue-200 border border-blue-700 min-h-[36px]"
+                    className="px-3 py-2 rounded-md bg-blue-900/60 hover:bg-blue-800 text-xs text-blue-200 border border-blue-700 min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-blue-400"
                   >
                     Tab Matriz
                   </button>
                   <button
                     onClick={() => simulateInteraction('matrix_score_3', { studentName: 'Juan' })}
-                    className="px-2.5 py-1.5 rounded-md bg-emerald-900/60 hover:bg-emerald-800 text-[10px] text-emerald-200 border border-emerald-700 min-h-[36px]"
+                    className="px-3 py-2 rounded-md bg-emerald-900/60 hover:bg-emerald-800 text-xs text-emerald-200 border border-emerald-700 min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-emerald-400"
                   >
                     3★ Logrado
                   </button>
                   <button
                     onClick={() => simulateInteraction('matrix_score_1', { studentName: 'María' })}
-                    className="px-2.5 py-1.5 rounded-md bg-rose-900/60 hover:bg-rose-800 text-[10px] text-rose-200 border border-rose-700 min-h-[36px]"
+                    className="px-3 py-2 rounded-md bg-rose-900/60 hover:bg-rose-800 text-xs text-rose-200 border border-rose-700 min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-rose-400"
                   >
                     1★ Apoyo
                   </button>
                   <button
                     onClick={simulatePeriodicTip}
-                    className="px-2.5 py-1.5 rounded-md bg-amber-900/60 hover:bg-amber-800 text-[10px] text-amber-200 border border-amber-700 min-h-[36px]"
+                    className="px-3 py-2 rounded-md bg-amber-900/60 hover:bg-amber-800 text-xs text-amber-200 border border-amber-700 min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-amber-400"
                   >
                     💡 Periódico
                   </button>
@@ -868,8 +958,8 @@ export const YacitaFloatingAvatar: React.FC = () => {
               </div>
 
               {/* Live Events Log */}
-              <div className="flex-1 overflow-y-auto space-y-1.5 text-[10.5px]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="flex-1 overflow-y-auto space-y-1.5 text-xs">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                   Historial de despachos (últimos):
                 </span>
                 {debugEvents.map((evt, idx) => (
@@ -882,11 +972,11 @@ export const YacitaFloatingAvatar: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-[9px] text-amber-400">
+                      <span className="font-mono text-xs text-amber-400">
                         seq #{evt.seq} · {evt.time}
                       </span>
                       <span
-                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                           evt.status === 'duplicado_ignorado'
                             ? 'bg-red-600 text-white'
                             : 'bg-emerald-900 text-emerald-300'
@@ -895,10 +985,10 @@ export const YacitaFloatingAvatar: React.FC = () => {
                         {evt.status === 'duplicado_ignorado' ? 'DUPLICADO IGNORADO' : evt.origen}
                       </span>
                     </div>
-                    <div className="font-semibold text-slate-100 truncate">
+                    <div className="font-semibold text-slate-100 truncate text-xs">
                       {evt.id}
                     </div>
-                    <div className="text-[10px] text-slate-400 truncate">
+                    <div className="text-xs text-slate-400 truncate">
                       "{evt.textSnippet}..."
                     </div>
                   </div>

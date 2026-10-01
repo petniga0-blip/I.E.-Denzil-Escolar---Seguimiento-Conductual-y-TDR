@@ -19,10 +19,9 @@ import {
   CRITERIA_DEFINITIONS,
   TeacherProfile,
 } from '../types';
-import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport';
 import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
-import { generateOfficialPDF } from '../utils/pdfExport';
 import MembreteReporte from './MembreteReporte';
+import FichaCuaderno from './FichaCuaderno';
 import { useYacitaCoach } from '../coach';
 import { Sheet } from './Sheet';
 
@@ -52,6 +51,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   const [parentSummary, setParentSummary] = useState<string>('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [reportFormat, setReportFormat] = useState<'carta' | 'cuaderno'>('carta');
 
   React.useEffect(() => {
     if (isOpen) {
@@ -93,6 +93,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   const handleDownloadPDF = async () => {
     try {
       setIsExportingPDF(true);
+      const { generateOfficialPDF } = await import('../utils/pdfExport');
       const pdf = await generateOfficialPDF({
         student,
         incident,
@@ -115,6 +116,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   const handleDownloadDocx = async () => {
     try {
       setIsExportingWord(true);
+      const { downloadDocxFile } = await import('../utils/docxExport');
       await downloadDocxFile({
         student,
         incident,
@@ -135,6 +137,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
   const handleDriveSync = async () => {
     try {
+      const { generateOfficialDocxBlob } = await import('../utils/docxExport');
       const blob = await generateOfficialDocxBlob({
         student,
         incident,
@@ -176,6 +179,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             <button
               type="button"
               onClick={handlePrint}
+              data-yacita="reports_btn_print"
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-700 hover:bg-slate-800 text-white transition-colors min-h-[44px] active:scale-95 shadow-xs"
               title="Imprimir documento"
             >
@@ -185,6 +189,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             <button
               type="button"
               onClick={handleDriveSync}
+              data-yacita="reports_btn_sync_drive"
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors min-h-[44px] active:scale-95 shadow-xs"
               title="Sincronizar en Google Drive"
             >
@@ -198,6 +203,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               type="button"
               onClick={handleDownloadDocx}
               disabled={isExportingWord}
+              data-yacita="reports_btn_download_word"
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors min-h-[44px] active:scale-95 shadow-xs disabled:opacity-60"
             >
               <Download className="w-4 h-4 shrink-0" />
@@ -208,6 +214,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               type="button"
               onClick={handleDownloadPDF}
               disabled={isExportingPDF}
+              data-yacita="reports_btn_download_pdf"
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-colors min-h-[44px] active:scale-95 shadow-xs disabled:opacity-60"
             >
               <Download className="w-4 h-4 shrink-0" />
@@ -228,16 +235,45 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
       <div className="space-y-4">
         {/* Top Control Bar for quick actions */}
         <div className="no-print p-3 rounded-xl bg-slate-100 dark:bg-[#131f42] border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Acciones de Reporte:
+              Formato:
             </span>
+            <div className="inline-flex items-center p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl gap-1">
+              <button
+                type="button"
+                onClick={() => setReportFormat('carta')}
+                data-yacita="reports_format_carta"
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors min-h-[44px] flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-hidden ${
+                  reportFormat === 'carta'
+                    ? 'bg-blue-700 text-white shadow-xs'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Carta Oficial</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportFormat('cuaderno')}
+                data-yacita="reports_format_cuaderno"
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors min-h-[44px] flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-hidden ${
+                  reportFormat === 'cuaderno'
+                    ? 'bg-blue-700 text-white shadow-xs'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
+                }`}
+              >
+                <Printer className="w-4 h-4" />
+                <span>Ficha Cuaderno (2 por hoja)</span>
+              </button>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleGenerateParentSummary}
             disabled={isGeneratingSummary}
+            data-yacita="reports_btn_parent_summary"
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white transition-colors shadow-xs min-h-[44px] active:scale-95 disabled:opacity-60"
             title="Redactar un informe empático y propositivo para la familia con Yacita"
           >
@@ -257,7 +293,9 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         <div className="p-1 sm:p-4 bg-slate-100 dark:bg-slate-950/60 rounded-xl flex justify-center overflow-x-auto">
           <div
             ref={printAreaRef}
-            className="print-container bg-white text-black w-full max-w-[800px] min-h-[1050px] p-6 sm:p-10 shadow-lg border border-slate-300 mx-auto rounded-lg"
+            className={`print-container bg-white text-black w-full max-w-[800px] ${
+              reportFormat === 'cuaderno' ? 'p-3 sm:p-5' : 'min-h-[1050px] p-6 sm:p-10'
+            } shadow-lg border border-slate-300 mx-auto rounded-lg`}
             style={{
               fontFamily: 'Arial, Helvetica, sans-serif',
               fontSize: '12pt',
@@ -266,16 +304,26 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               color: '#000000',
             }}
           >
-            <MembreteReporte>
-              {/* Title of Document */}
-              <div className="text-center my-3 pb-2 border-b border-slate-300">
-                <h2 className="text-[12pt] font-bold uppercase text-black tracking-wide font-sans">
-                  REGISTRO DE SEGUIMIENTO Y TARJETA DIARIA CONDUCTUAL (TDR)
-                </h2>
-                <p className="text-[9.5pt] text-slate-700 italic">
-                  Comité Escolar de Convivencia y Enfoque Formativo Restaurativo
-                </p>
-              </div>
+            {reportFormat === 'cuaderno' ? (
+              <FichaCuaderno
+                student={student}
+                score={dailyScore}
+                incident={incident}
+                teacher={teacher}
+                dateStr={dateStr}
+                parentSummary={parentSummary}
+              />
+            ) : (
+              <MembreteReporte>
+                {/* Title of Document */}
+                <div className="text-center my-3 pb-2 border-b border-slate-300">
+                  <h2 className="text-[12pt] font-bold uppercase text-black tracking-wide font-sans">
+                    REGISTRO DE SEGUIMIENTO Y TARJETA DIARIA CONDUCTUAL (TDR)
+                  </h2>
+                  <p className="text-[10pt] text-slate-700 italic">
+                    Comité Escolar de Convivencia y Enfoque Formativo Restaurativo
+                  </p>
+                </div>
 
               {/* Data Grid: Student & Date Info */}
               <div className="my-3 text-[10.5pt] leading-tight space-y-1">
@@ -389,14 +437,14 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                   </h3>
                   <div className="space-y-2 text-[10pt] leading-snug">
                     <div className="p-2 border border-slate-200 rounded">
-                      <strong className="block text-slate-800 text-[9.5pt]">
+                      <strong className="block text-slate-800 text-[10pt]">
                         A - Antecedente / Detonante Observable:
                       </strong>
                       <p className="text-black mt-0.5">{incident.trigger}</p>
                     </div>
 
                     <div className="p-2 border border-slate-200 rounded">
-                      <strong className="block text-slate-800 text-[9.5pt]">
+                      <strong className="block text-slate-800 text-[10pt]">
                         B - Conductas Específicas Registradas:
                       </strong>
                       <p className="text-black mt-0.5">
@@ -406,7 +454,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                     </div>
 
                     <div className="p-2 border border-slate-200 rounded">
-                      <strong className="block text-slate-800 text-[9.5pt]">
+                      <strong className="block text-slate-800 text-[10pt]">
                         C - Acciones Reguladoras y Respuesta Pedagógica:
                       </strong>
                       <p className="text-black mt-0.5">
@@ -415,7 +463,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                     </div>
 
                     <div className="p-2 bg-blue-50/50 border border-blue-200 rounded">
-                      <strong className="block text-blue-900 text-[9.5pt]">
+                      <strong className="block text-blue-900 text-[10pt]">
                         Pacto Formativo y Acuerdo Restaurativo:
                       </strong>
                       <p className="text-slate-900 font-medium mt-0.5">{incident.restorativeAgreement}</p>
@@ -426,7 +474,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
               {/* Section 3: Sensory / Medical Considerations */}
               {student.medicalSensoryNotes && (
-                <div className="my-3 p-2 bg-purple-50/40 border border-purple-200 rounded text-[9.5pt]">
+                <div className="my-3 p-2 bg-purple-50/40 border border-purple-200 rounded text-[10pt]">
                   <strong className="text-purple-900">Consideraciones Médicas o Sensoriales Previas: </strong>
                   <span className="text-slate-800">{student.medicalSensoryNotes}</span>
                 </div>
@@ -452,28 +500,31 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                   <div className="flex flex-col items-center">
                     <div className="w-full border-t border-black mb-1"></div>
                     <strong className="block text-[10.5pt]">{teacher.name}</strong>
-                    <span className="text-[9pt] italic text-slate-700">Firma Docente / Orientador</span>
+                    <span className="text-[10pt] italic text-slate-700">Firma Docente / Orientador</span>
                   </div>
 
                   {/* Acudiente */}
                   <div className="flex flex-col items-center">
                     <div className="w-full border-t border-black mb-1"></div>
                     <strong className="block text-[10.5pt]">{student.guardianName}</strong>
-                    <span className="text-[9pt] italic text-slate-700">Firma Padre / Acudiente</span>
+                    <span className="text-[10pt] italic text-slate-700">Firma Padre / Acudiente</span>
                   </div>
 
                   {/* Estudiante */}
                   <div className="flex flex-col items-center">
                     <div className="w-full border-t border-black mb-1"></div>
                     <strong className="block text-[10.5pt]">{student.fullName}</strong>
-                    <span className="text-[9pt] italic text-slate-700">Compromiso del Estudiante</span>
+                    <span className="text-[10pt] italic text-slate-700">Compromiso del Estudiante</span>
                   </div>
                 </div>
               </div>
             </MembreteReporte>
+          )}
           </div>
         </div>
       </div>
     </Sheet>
   );
 };
+
+export default OfficialReportModal;

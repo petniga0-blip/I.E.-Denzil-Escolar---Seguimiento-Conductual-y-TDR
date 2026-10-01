@@ -20,6 +20,7 @@ let activeAudioSource: AudioBufferSourceNode | null = null;
 let activeAudioContext: AudioContext | null = null;
 let mouthAnimationInterval: NodeJS.Timeout | null = null;
 let isCurrentlySpeaking = false;
+let clientTtsCooldownUntil = 0;
 
 // Positive female indicators
 const FEMALE_VOICE_INDICATORS = [
@@ -229,7 +230,10 @@ export async function speakYacita(
   };
 
   // PRIVACY RULE: If text contains student personal data, NEVER send to server.
-  const canUseServerTts = !containsPersonalData && cleanText.length < 250;
+  const canUseServerTts =
+    !containsPersonalData &&
+    cleanText.length < 250 &&
+    Date.now() > clientTtsCooldownUntil;
 
   if (canUseServerTts && typeof window !== 'undefined' && 'fetch' in window) {
     try {
@@ -245,6 +249,11 @@ export async function speakYacita(
       });
 
       clearTimeout(timeoutId);
+
+      if (res.status === 429 || res.status === 503) {
+        // Quota exceeded or service temporarily unavailable; enter 60s cooldown
+        clientTtsCooldownUntil = Date.now() + 60000;
+      }
 
       if (res.ok) {
         const data = await res.json();

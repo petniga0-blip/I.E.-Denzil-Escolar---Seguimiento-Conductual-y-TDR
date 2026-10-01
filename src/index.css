@@ -42,7 +42,41 @@
 /* Official Document Print Settings (Carta Vertical / Letter Portrait) */
 @page {
   size: 215.9mm 279.4mm portrait;
-  margin: 15mm;
+  margin: 10mm 12mm;
+}
+
+/* =========================================================================
+   FICHA DIARIA DE REPORTE PARA CUADERNO (2 FICHAS POR HOJA CARTA)
+   ========================================================================= */
+.print-ficha-wrapper {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.print-ficha {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.print-cut-line {
+  border-top: 2px dashed #94a3b8;
+  margin: 10px 0;
+  padding-top: 4px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 @media print {
@@ -73,6 +107,44 @@
     border: none !important;
     background: #ffffff !important;
     color: #000000 !important;
+  }
+
+  /* Estilos de impresión para Tarjeta Diaria de Cuaderno: 2 fichas idénticas por hoja */
+  .print-ficha-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .print-ficha {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #94a3b8 !important; /* bordes grises finos */
+    border-radius: 4px !important;
+    padding: 3mm 4mm !important;
+    box-sizing: border-box !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 8.5pt !important;
+    line-height: 1.15 !important;
+    max-height: 118mm !important;
+    overflow: hidden !important;
+  }
+
+  .print-cut-line {
+    border-top: 1.5px dashed #64748b !important;
+    margin: 2.5mm 0 !important;
+    padding-top: 1mm !important;
+    text-align: center !important;
+    color: #334155 !important;
+    font-size: 8pt !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .print-table {
@@ -340,6 +412,25 @@ button, a, input, select, textarea {
   textarea {
     font-size: 16px !important;
   }
+}
+
+/* Accessible focus ring on all interactive elements when navigated with Tab */
+:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px !important;
+}
+
+.dark :focus-visible {
+  outline-color: #60a5fa !important;
+}
+
+/* Modo claro de alto contraste */
+html:not(.dark) {
+  color-scheme: light;
+}
+
+html:not(.dark) body {
+  color: #0f172a;
 }
 
 

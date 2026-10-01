@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   Student,
   DailyCriterionScore,
@@ -22,11 +22,13 @@ import { Header } from './components/Header';
 import { StudentManagement } from './components/StudentManagement';
 import { BehaviorMatrix } from './components/BehaviorMatrix';
 import { ABCFormAndTDR } from './components/ABCFormAndTDR';
-import { OfficialReportsHub } from './components/OfficialReportsHub';
-import { OfficialReportModal } from './components/OfficialReportModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
+import { ReportSkeleton } from './components/LoadingSkeleton';
 import { YacitaCoachProvider, useYacitaCoach, YacitaFloatingAvatar } from './coach';
+
+const OfficialReportsHub = React.lazy(() => import('./components/OfficialReportsHub'));
+const OfficialReportModal = React.lazy(() => import('./components/OfficialReportModal'));
 
 function MainAppContent({
   isDark,
@@ -130,7 +132,7 @@ function MainAppContent({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-slate-100 text-slate-800 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-slate-100 text-slate-900 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors overflow-x-hidden">
       {/* Institutional Header */}
       <Header
         currentTab={currentTab}
@@ -145,7 +147,7 @@ function MainAppContent({
       />
 
       {/* Main Content Area with exact safe clearance for mobile fixed bars and landscape rail */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-6 landscape:pt-14 landscape:pl-20 py-4 pb-36 sm:pb-40">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 landscape:pt-2.5 landscape:pl-20 pb-36 sm:pb-40">
         {currentTab === 'students' && (
           <StudentManagement
             students={students}
@@ -179,34 +181,38 @@ function MainAppContent({
         )}
 
         {currentTab === 'reports' && (
-          <OfficialReportsHub
-            students={students}
-            incidents={incidents}
-            scores={scores}
-            teacher={teacher}
-            onSyncDrive={openDriveSyncModal}
-          />
+          <Suspense fallback={<ReportSkeleton />}>
+            <OfficialReportsHub
+              students={students}
+              incidents={incidents}
+              scores={scores}
+              teacher={teacher}
+              onSyncDrive={openDriveSyncModal}
+            />
+          </Suspense>
         )}
       </main>
 
       {/* Official TDR Report Modal */}
       {selectedStudentForReport && (
-        <OfficialReportModal
-          isOpen={isReportModalOpen}
-          onClose={() => {
-            setIsReportModalOpen(false);
-            notifyModalClose();
-          }}
-          student={selectedStudentForReport}
-          incident={selectedIncidentForReport || undefined}
-          dailyScore={scores.find(
-            (sc) =>
-              sc.studentId === selectedStudentForReport.id &&
-              sc.date === (selectedIncidentForReport?.date || new Date().toISOString().split('T')[0])
-          )}
-          teacher={teacher}
-          onSyncToGoogleDrive={openDriveSyncModal}
-        />
+        <Suspense fallback={null}>
+          <OfficialReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => {
+              setIsReportModalOpen(false);
+              notifyModalClose();
+            }}
+            student={selectedStudentForReport}
+            incident={selectedIncidentForReport || undefined}
+            dailyScore={scores.find(
+              (sc) =>
+                sc.studentId === selectedStudentForReport.id &&
+                sc.date === (selectedIncidentForReport?.date || new Date().toISOString().split('T')[0])
+            )}
+            teacher={teacher}
+            onSyncToGoogleDrive={openDriveSyncModal}
+          />
+        </Suspense>
       )}
 
       {/* Google Account & Teacher Profile Modal */}
@@ -246,9 +252,15 @@ function MainAppContent({
 }
 
 export default function App() {
-  // Theme State
+  // Theme State: prefers-color-scheme as initial value if no preference is stored
   const [isDark, setIsDark] = useState<boolean>(() => {
-    return localStorage.getItem('denzil_theme_mode') === 'dark';
+    const saved = localStorage.getItem('denzil_theme_mode');
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
   });
 
   useEffect(() => {

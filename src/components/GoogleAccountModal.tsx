@@ -106,6 +106,8 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
           <img
             src={denzilLogo}
             alt="Logo I.E. Denzil Escolar"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-contain drop-shadow-xs"
           />
         </div>
@@ -146,6 +148,8 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
               <img
                 src={teacher.googleAvatar}
                 alt={teacher.name}
+                loading="lazy"
+                decoding="async"
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500 shrink-0"
               />
             ) : (
@@ -157,7 +161,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
               <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 block">
                 {teacher.isGoogleConnected ? 'Cuenta de Google Conectada' : 'Modo Local / Sin Conexión'}
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 break-words break-all">
+              <span className="text-xs text-slate-600 dark:text-slate-300 block mt-0.5 break-words break-all">
                 {teacher.isGoogleConnected
                   ? teacher.email
                   : 'Los datos se guardan de forma segura en este dispositivo (Offline).'}

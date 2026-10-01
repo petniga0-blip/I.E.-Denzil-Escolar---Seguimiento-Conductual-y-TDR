@@ -159,16 +159,16 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
       onYacitaHelpClick={handleYacitaHelp}
       footer={
         <div className="flex items-center justify-between gap-3 w-full">
-          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 min-w-0">
             <Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span className="truncate">
-              Última copia: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{formatLastBackupDate(lastBackup)}</strong>
+              Última copia: <strong className="text-slate-700 dark:text-slate-200 font-semibold">{formatLastBackupDate(lastBackup)}</strong>
             </span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-blue-700 hover:bg-blue-800 text-white min-h-[44px] min-w-[96px] transition-colors active:scale-95 shadow-xs shrink-0"
+            className="px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-blue-700 hover:bg-blue-800 text-white min-h-[44px] min-w-[96px] transition-colors active:scale-95 shadow-xs shrink-0 focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Cerrar ventana de sincronización y respaldo"
           >
             Entendido
@@ -183,6 +183,8 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
             <img
               src={yacitaIdle}
               alt="Yacita"
+              loading="lazy"
+              decoding="async"
               className="w-7 h-7 object-contain shrink-0"
             />
             <p className="text-xs text-amber-900 dark:text-amber-200 font-medium leading-snug line-clamp-2">
@@ -192,7 +194,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
           <button
             type="button"
             onClick={handleYacitaHelp}
-            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-200 dark:bg-amber-800/80 text-amber-900 dark:text-amber-100 hover:bg-amber-300 transition-colors shrink-0 min-h-[36px]"
+            className="px-3 py-2 text-xs font-bold rounded-lg bg-amber-200 dark:bg-amber-800/80 text-amber-900 dark:text-amber-100 hover:bg-amber-300 transition-colors shrink-0 min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             Escuchar
           </button>
@@ -211,14 +213,14 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
               <button
                 type="button"
                 onClick={handleDismissReminder}
-                className="px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-amber-200/60 dark:hover:bg-amber-900/60 text-[11px] font-semibold transition-colors min-h-[36px]"
+                className="px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-amber-200/60 dark:hover:bg-amber-900/60 text-xs font-semibold transition-colors min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 Recordármelo luego
               </button>
               <button
                 type="button"
                 onClick={handleSimulateSync}
-                className="px-3.5 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[11px] font-bold transition-colors min-h-[36px]"
+                className="px-3.5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold transition-colors min-h-[44px] flex items-center focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 Respaldar ahora
               </button>
@@ -266,7 +268,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
               <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 block">
                 Copia Segura en Google Drive
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 break-words [overflow-wrap:anywhere]">
+              <span className="text-xs text-slate-600 dark:text-slate-300 block mt-0.5 break-words [overflow-wrap:anywhere]">
                 {teacher.isGoogleConnected
                   ? `Vinculado a: ${teacher.email}`
                   : 'Modo local (Inicie sesión con Google en perfil)'}
@@ -330,7 +332,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
             <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block">
               Copias de Seguridad Manuales (.json)
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-slate-600 dark:text-slate-300">
               Formato institucional
             </span>
           </div>

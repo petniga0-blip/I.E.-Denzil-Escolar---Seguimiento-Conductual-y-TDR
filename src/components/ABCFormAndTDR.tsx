@@ -347,7 +347,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
 
               {/* Suggestions */}
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mr-1">
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium mr-1">
                   Sugerencias:
                 </span>
                 {SUGGESTED_EXPECTED.map((sug, idx) => (
@@ -355,7 +355,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => setExpectedBehavior(sug)}
-                    className="text-[11px] px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-500 transition-colors"
+                    className="text-xs px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:border-blue-500 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                     {sug}
                   </button>
@@ -369,7 +369,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                   Nivel de logro alcanzado en la meta pedagógica:
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs text-slate-600 dark:text-slate-300">
                   {expectedBehaviorStars} de 5 estrellas
                 </span>
               </div>
@@ -379,7 +379,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     key={star}
                     type="button"
                     onClick={() => setExpectedBehaviorStars(star)}
-                    className="p-1 rounded hover:scale-110 transition-transform focus:outline-hidden min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    className="p-1 rounded hover:scale-110 transition-transform focus:outline-hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label={`${star} estrellas`}
                   >
                     <Star
@@ -443,13 +443,13 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     type="button"
                     onClick={() => handleToggleBehavior(beh)}
                     data-yacita="abc_behavior_checkbox"
-                    className={`flex items-center text-left gap-2.5 p-3 rounded-lg text-xs font-semibold border transition-all min-h-[44px] ${
+                    className={`flex items-center text-left gap-2.5 p-3 rounded-lg text-xs font-semibold border transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-amber-500 ${
                       isSelected
                         ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
-                        : 'bg-white dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                        : 'bg-white dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-amber-400'
                     }`}
                   >
-                    <span className="w-4 h-4 rounded border flex items-center justify-center text-[10px] shrink-0">
+                    <span className="w-4 h-4 rounded border flex items-center justify-center text-xs font-bold shrink-0">
                       {isSelected ? '✓' : ''}
                     </span>
                     <span>{beh}</span>
@@ -511,7 +511,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Seleccione las estrategias pedagógicas y restaurativas aplicadas para guiar la calma y la reparación:
             </p>
 
@@ -524,13 +524,13 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     type="button"
                     onClick={() => handleToggleRegulatory(action)}
                     data-yacita="abc_regulatory_checkbox"
-                    className={`flex items-center text-left gap-2.5 p-3 rounded-lg text-xs font-semibold border transition-all min-h-[44px] ${
+                    className={`flex items-center text-left gap-2.5 p-3 rounded-lg text-xs font-semibold border transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                       isSelected
                         ? 'bg-emerald-700 text-white border-emerald-800 shadow-2xs'
-                        : 'bg-white dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                        : 'bg-white dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-emerald-400'
                     }`}
                   >
-                    <span className="w-4 h-4 rounded border flex items-center justify-center text-[10px] shrink-0">
+                    <span className="w-4 h-4 rounded border flex items-center justify-center text-xs font-bold shrink-0">
                       {isSelected ? '✓' : ''}
                     </span>
                     <span>{action}</span>
@@ -612,7 +612,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
               Historial de Incidencias y Tarjetas Diarias (TDR)
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
               {filteredIncidents.length} registros guardados
             </p>
           </div>
@@ -636,7 +636,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
         </div>
 
         {filteredIncidents.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+          <div className="p-8 text-center text-slate-600 dark:text-slate-300 text-sm">
             No hay incidencias formativas registradas para el filtro seleccionado.
           </div>
         ) : (
@@ -654,7 +654,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
                       Grado {inc.grade}
                     </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <span className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {inc.date} a las {inc.time} ({inc.subject})
                     </span>
@@ -669,7 +669,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                     </span>
                   </div>
 
-                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <div className="text-xs text-slate-700 dark:text-slate-300">
                     <strong>Conducta observada:</strong> {inc.observedBehaviors.join(', ')}
                     {inc.otherBehaviorDetail && ` (${inc.otherBehaviorDetail})`}
                   </div>
@@ -683,6 +683,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
                 <div className="shrink-0 self-end md:self-center">
                   <button
                     onClick={() => onOpenReportModal(inc)}
+                    data-yacita="abc_btn_open_report"
                     className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-blue-700 hover:bg-blue-800 text-white transition-colors shadow-xs min-h-[44px]"
                   >
                     <Eye className="w-3.5 h-3.5" />

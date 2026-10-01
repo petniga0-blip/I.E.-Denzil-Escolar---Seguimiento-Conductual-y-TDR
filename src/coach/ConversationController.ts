@@ -388,6 +388,18 @@ export class ConversationController {
 
   public setIsPaused(paused: boolean): void {
     this.isPaused = paused;
+    if (paused) {
+      // Pausa activa mientras el usuario pasa el cursor o toca la burbuja: detener temporizador
+      if (this.autoCloseTimer) {
+        clearTimeout(this.autoCloseTimer);
+        this.autoCloseTimer = null;
+      }
+    } else {
+      // Reanudar: conceder los 8 s completos al retirar cursor o terminar toque
+      if (this.currentMessage && (this.phase === 'completo' || (!this.isSpeaking && !this.isTyping))) {
+        this.startAutoClose(this.currentSeq, 8000);
+      }
+    }
     this.notify();
   }
 
@@ -546,32 +558,43 @@ export class ConversationController {
     this.phase = 'hablando_escribiendo';
     this.isSpeaking = true;
     this.currentMood = 'hablando';
-    this.displayedText = '';
 
     const fullVisual = message.texto;
+    const isReducedMotion = typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    // Respetar prefers-reduced-motion: si está activo, mostrar texto visual completo sin typewriter ni pacing
+    if (isReducedMotion) {
+      this.displayedText = fullVisual;
+      this.isTyping = false;
+    } else {
+      this.displayedText = '';
+      this.isTyping = true;
+    }
+
     const words = fullVisual.split(/(\s+)/);
     let revealedCharCount = 0;
-    const startTime = Date.now();
 
-    // Fallback word pacer in case boundary events are not emitted by network/OS voices
-    let wordIndex = 0;
-    const totalWords = words.length;
-    // Estimate speech duration: ~16 characters per second scaled by speed
-    const charsPerSec = 16 * this.voiceSpeed;
-    const estimatedTotalMs = Math.max(1500, (fullVisual.length / charsPerSec) * 1000);
-    const msPerWord = estimatedTotalMs / Math.max(1, totalWords);
+    // Fallback word pacer in case boundary events are not emitted by network/OS voices (solo si no es reduced-motion)
+    if (!isReducedMotion) {
+      let wordIndex = 0;
+      const totalWords = words.length;
+      const charsPerSec = 16 * this.voiceSpeed;
+      const estimatedTotalMs = Math.max(1500, (fullVisual.length / charsPerSec) * 1000);
+      const msPerWord = estimatedTotalMs / Math.max(1, totalWords);
 
-    this.wordPacerTimer = setInterval(() => {
-      if (this.currentSeq !== msgSeq) return;
-      if (wordIndex < totalWords) {
-        wordIndex += 2; // word + space
-        const partial = words.slice(0, wordIndex).join('');
-        if (partial.length > this.displayedText.length) {
-          this.displayedText = partial;
-          this.notify();
+      this.wordPacerTimer = setInterval(() => {
+        if (this.currentSeq !== msgSeq) return;
+        if (wordIndex < totalWords) {
+          wordIndex += 2; // word + space
+          const partial = words.slice(0, wordIndex).join('');
+          if (partial.length > this.displayedText.length) {
+            this.displayedText = partial;
+            this.notify();
+          }
         }
-      }
-    }, Math.max(40, msPerWord));
+      }, Math.max(40, msPerWord));
+    }
 
     speakYacita(message.textoVoz, {
       voiceUri: this.selectedVoiceUri,
@@ -585,7 +608,7 @@ export class ConversationController {
         this.notify();
       },
       onBoundary: (charIndex: number, charLength: number = 0) => {
-        if (this.currentSeq !== msgSeq) return;
+        if (this.currentSeq !== msgSeq || isReducedMotion) return;
         // Map spoken boundary to visual text length
         const targetLen = Math.min(fullVisual.length, charIndex + (charLength || 4));
         if (targetLen > revealedCharCount) {
@@ -603,15 +626,16 @@ export class ConversationController {
         if (this.currentSeq !== msgSeq) return;
         if (this.wordPacerTimer) clearInterval(this.wordPacerTimer);
 
-        // 100% full text on finish
+        // 100% full text on finish - nunca cortado
         this.displayedText = fullVisual;
         this.isSpeaking = false;
+        this.isTyping = false;
         this.phase = 'completo';
         this.currentMood = message.estadoYacita || 'idle';
         this.notify();
 
-        const speechDuration = Date.now() - startTime;
-        this.startAutoClose(msgSeq, speechDuration);
+        // Auto-cierre a los 8 s tras terminar de hablar (pausa si hay cursor/toque)
+        this.startAutoClose(msgSeq, 8000);
       },
       onError: () => {
         if (this.currentSeq !== msgSeq) return;
@@ -619,19 +643,36 @@ export class ConversationController {
 
         this.displayedText = fullVisual;
         this.isSpeaking = false;
+        this.isTyping = false;
         this.phase = 'completo';
         this.currentMood = message.estadoYacita || 'idle';
         this.notify();
-        this.startAutoClose(msgSeq, 2000);
+        this.startAutoClose(msgSeq, 8000);
       },
     });
   }
 
   // ══════════════════════════════════════════════════════════
   // PARTE 2: TYPING EFFECT WHEN VOICE IS DISABLED
+  // (Respetando prefers-reduced-motion: sin typewriter)
   // ══════════════════════════════════════════════════════════
 
   private executeTypingLedMessage(message: CoachMessage, msgSeq: number): void {
+    // Si el usuario tiene activado prefers-reduced-motion, mostrar texto completo sin typewriter
+    const isReducedMotion = typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    if (isReducedMotion) {
+      this.displayedText = message.texto;
+      this.isTyping = false;
+      this.isSpeaking = false;
+      this.phase = 'completo';
+      this.currentMood = message.estadoYacita || 'idle';
+      this.notify();
+      this.startAutoClose(msgSeq, 8000);
+      return;
+    }
+
     this.phase = 'hablando_escribiendo';
     this.isTyping = true;
     this.currentMood = 'hablando';
@@ -639,8 +680,8 @@ export class ConversationController {
 
     const fullVisual = message.texto;
     let charIdx = 0;
-    // ~50-60 chars per second: 18ms per character
-    const charInterval = 18;
+    // ~60 chars per second: 16ms per character
+    const charInterval = 16;
 
     this.typewriterTimer = setInterval(() => {
       if (this.currentSeq !== msgSeq) {
@@ -654,43 +695,43 @@ export class ConversationController {
         this.notify();
       } else {
         if (this.typewriterTimer) clearInterval(this.typewriterTimer);
+        // Garantizar texto 100% completo, nunca cortado
+        this.displayedText = fullVisual;
         this.isTyping = false;
+        this.isSpeaking = false;
         this.phase = 'completo';
         this.currentMood = message.estadoYacita || 'idle';
         this.notify();
 
-        // Start auto-close after typing finishes (min 6s)
-        this.startAutoClose(msgSeq, 0);
+        // Auto-cierre a los 8 s tras completar la escritura (pausa si hay cursor/toque)
+        this.startAutoClose(msgSeq, 8000);
       }
     }, charInterval);
   }
 
   // ══════════════════════════════════════════════════════════
-  // AUTO-CLOSE & INTERACTION HELPERS
+  // AUTO-CLOSE & INTERACTION HELPERS (8 s con pausa por cursor/toque)
   // ══════════════════════════════════════════════════════════
 
-  private startAutoClose(msgSeq: number, voiceDurationMs: number): void {
-    if (this.autoCloseTimer) clearTimeout(this.autoCloseTimer);
+  private startAutoClose(msgSeq: number, closeDelayMs: number = 8000): void {
+    if (this.autoCloseTimer) {
+      clearTimeout(this.autoCloseTimer);
+      this.autoCloseTimer = null;
+    }
 
-    // Auto-cierre: 5 s sin voz; con voz, duración de la voz + 2 s
-    const closeDelay = voiceDurationMs > 0 ? Math.max(5000, voiceDurationMs + 2000) : 5000;
+    // No iniciar cuenta regresiva mientras esté pausado por cursor o toque
+    if (this.isPaused) return;
 
-    const checkAndClose = () => {
-      this.autoCloseTimer = setTimeout(() => {
-        if (this.currentSeq !== msgSeq) return;
-        if (this.isPaused) {
-          // If hovered, recheck in 1s
-          checkAndClose();
-          return;
-        }
-        this.dismissBubble();
-      }, closeDelay);
-    };
+    const delay = closeDelayMs > 0 ? closeDelayMs : 8000;
 
-    checkAndClose();
+    this.autoCloseTimer = setTimeout(() => {
+      if (this.currentSeq !== msgSeq) return;
+      if (this.isPaused) return;
+      this.dismissBubble();
+    }, delay);
   }
 
-  // User clicked the bubble: reveal all text instantly and skip voice
+  // User clicked/tapped the bubble or skip button: reveal all text instantly and stop typing/voice
   public skipVoiceAndComplete(): void {
     if (!this.currentMessage) return;
     const msgSeq = this.currentSeq;
@@ -698,15 +739,25 @@ export class ConversationController {
     stopSpeaking();
     this.isSpeaking = false;
     this.isTyping = false;
-    if (this.wordPacerTimer) clearInterval(this.wordPacerTimer);
-    if (this.typewriterTimer) clearInterval(this.typewriterTimer);
+    if (this.wordPacerTimer) {
+      clearInterval(this.wordPacerTimer);
+      this.wordPacerTimer = null;
+    }
+    if (this.typewriterTimer) {
+      clearInterval(this.typewriterTimer);
+      this.typewriterTimer = null;
+    }
 
+    // Texto 100% completo e íntegro (sin quedar cortado "Aquí▌")
     this.displayedText = this.currentMessage.texto;
     this.phase = 'completo';
     this.currentMood = this.currentMessage.estadoYacita || 'idle';
     this.notify();
 
-    this.startAutoClose(msgSeq, 2000);
+    // Mantener visible por 8 s si no está en pausa por interacción activa
+    if (!this.isPaused) {
+      this.startAutoClose(msgSeq, 8000);
+    }
   }
 
   public dismissBubble(): void {

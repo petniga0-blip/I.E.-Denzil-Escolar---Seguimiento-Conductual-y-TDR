@@ -227,11 +227,13 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
             <img
               src={activeImage}
               alt="Yacita Asistente de Formulario"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-contain aspect-square"
             />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
               Guía de Registro
             </span>
             <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
@@ -244,7 +246,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                   style={{ width: `${(completedCount / 5) * 100}%` }}
                 />
               </div>
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {completedCount}/5
               </span>
             </div>
@@ -262,12 +264,12 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
             title="Haz clic para completar la voz y el texto"
           >
             <div className="flex items-center justify-between pb-1 mb-1 border-b border-amber-200/70 dark:border-amber-900/60">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 Yacita te acompaña:
               </span>
               {isSpeaking && (
-                <span className="text-[9px] px-1 rounded-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                <span className="text-xs px-1.5 py-0.5 rounded-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
                   🔊 Hablando
                 </span>
               )}
@@ -287,7 +289,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
         )}
 
         {/* Status Pill */}
-        <div className="mb-4 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
+        <div className="mb-4 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
           <span>Campos completados:</span>
           <span className="font-bold text-emerald-700 dark:text-emerald-400">
             {completedCount === 5 ? '¡Listo para guardar! ⭐' : `${completedCount} de 5 campos`}
@@ -305,7 +307,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <div className="flex items-center gap-1.5">
                   {currentGuia.numero && (
-                    <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-black text-[11px] flex items-center justify-center">
+                    <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-black text-xs flex items-center justify-center">
                       {currentGuia.numero}
                     </span>
                   )}
@@ -317,7 +319,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                   <button
                     type="button"
                     onClick={() => rotateConsejo(currentGuia.id)}
-                    className="flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400 font-semibold hover:underline"
+                    className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 font-semibold hover:underline focus-visible:ring-2 focus-visible:ring-amber-500 rounded"
                     title="Rotar y ver otro consejo para este campo"
                   >
                     <RotateCw className="w-3 h-3" />
@@ -328,22 +330,22 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
 
               {/* "Para qué sirve" (Function) */}
               <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                  <Info className="w-3 h-3 text-blue-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5 text-blue-500" />
                   ¿Para qué sirve?
                 </span>
-                <p className="text-slate-700 dark:text-slate-300 text-[11.5px] leading-relaxed">
+                <p className="text-slate-700 dark:text-slate-200 text-xs leading-relaxed">
                   {currentGuia.funcion}
                 </p>
               </div>
 
               {/* Concrete Rotating Advice */}
               <div className="p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1">
-                  <Lightbulb className="w-3 h-3 text-amber-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
                   Consejo de Yacita:
                 </span>
-                <p className="text-slate-700 dark:text-slate-200 text-[11.5px] leading-relaxed font-medium">
+                <p className="text-slate-700 dark:text-slate-200 text-xs leading-relaxed font-medium">
                   {currentConsejo}
                 </p>
               </div>
@@ -357,7 +359,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                       <button
                         type="button"
                         onClick={handleFixNameFormat}
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100/70 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-[11px] font-semibold transition-colors shadow-2xs"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100/70 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-semibold transition-colors shadow-2xs"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                         <span>Corregir mayúsculas y tildes</span>
@@ -365,7 +367,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                     )}
 
                     {duplicateStudent && (
-                      <div className="p-2 rounded-lg bg-red-100/90 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-[11px] text-red-900 dark:text-red-200 flex items-start gap-1.5">
+                      <div className="p-2 rounded-lg bg-red-100/90 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-xs text-red-900 dark:text-red-200 flex items-start gap-1.5">
                         <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                         <div>
                           <strong>Aviso amable:</strong> Ya existe registrado{' '}
@@ -379,7 +381,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                 {/* Grade chips */}
                 {effectiveFieldKey === 'grade' && uniqueGrades.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
                       Grupos ya registrados:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -388,7 +390,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                           key={g}
                           type="button"
                           onClick={() => onApplyGrade(g)}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                             grade === g
                               ? 'bg-blue-600 text-white shadow-2xs'
                               : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/60'
@@ -408,7 +410,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                       <button
                         type="button"
                         onClick={() => onApplyShift('Mañana')}
-                        className={`flex-1 py-1 rounded-md text-[11px] font-semibold transition-all border ${
+                        className={`flex-1 py-1 rounded-md text-xs font-semibold transition-all border ${
                           shift === 'Mañana'
                             ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
                             : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
@@ -419,7 +421,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                       <button
                         type="button"
                         onClick={() => onApplyShift('Tarde')}
-                        className={`flex-1 py-1 rounded-md text-[11px] font-semibold transition-all border ${
+                        className={`flex-1 py-1 rounded-md text-xs font-semibold transition-all border ${
                           shift === 'Tarde'
                             ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
                             : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
@@ -433,7 +435,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                       <button
                         type="button"
                         onClick={() => onApplyShift(predominantShift)}
-                        className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 text-[11px] font-medium hover:bg-indigo-100/60 transition-colors"
+                        className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 text-xs font-medium hover:bg-indigo-100/60 transition-colors"
                       >
                         <Users className="w-3.5 h-3.5 text-indigo-600" />
                         <span>Sugerir jornada de compañeros: «{predominantShift}»</span>
@@ -447,7 +449,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                   <button
                     type="button"
                     onClick={() => onApplyGuardianName(suggestedGuardian.guardianName)}
-                    className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-[11px] font-medium hover:bg-emerald-100/60 transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-xs font-medium hover:bg-emerald-100/60 transition-colors"
                   >
                     <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Sugerir acudiente de {suggestedGuardian.siblingName.split(' ')[0]}: «{suggestedGuardian.guardianName}»</span>
@@ -457,7 +459,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                 {/* Phone validation pill */}
                 {effectiveFieldKey === 'contactPhone' && phoneValidation && (
                   <div
-                    className={`p-2 rounded-lg text-[11px] flex items-center gap-1.5 ${
+                    className={`p-2 rounded-lg text-xs flex items-center gap-1.5 ${
                       phoneValidation.valid
                         ? 'bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-300'
                         : 'bg-amber-100/90 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300'
@@ -475,7 +477,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                 {/* Medical sensory chips */}
                 {effectiveFieldKey === 'medicalSensoryNotes' && (
                   <div className="space-y-1.5">
-                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 block">
                       Ejemplos pedagógicos estándar:
                     </span>
                     {currentGuia.chips?.map((chip, idx) => (
@@ -483,7 +485,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
                         key={idx}
                         type="button"
                         onClick={() => onApplyNotes(chip.value)}
-                        className="w-full text-left p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-purple-100/60 dark:hover:bg-purple-950/50 text-[11px] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5"
+                        className="w-full text-left p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-purple-100/60 dark:hover:bg-purple-950/50 text-xs text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5"
                       >
                         <Check className="w-3 h-3 text-purple-600 shrink-0" />
                         <span className="truncate">{chip.label}</span>
@@ -494,7 +496,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
 
                 {/* Save button explanation */}
                 {effectiveFieldKey === 'save' && (
-                  <div className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                  <div className="text-xs text-slate-700 dark:text-slate-200 space-y-1">
                     {completedCount === 5 ? (
                       <p className="text-emerald-700 dark:text-emerald-400 font-semibold">
                         ✓ Todos los campos obligatorios están completos. Al guardar se creará la ficha del estudiante.
@@ -509,8 +511,8 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
 
                 {/* Cancel button explanation */}
                 {effectiveFieldKey === 'cancel' && (
-                  <div className="text-[11px] text-slate-600 dark:text-slate-300">
-                    <p className="text-slate-500 dark:text-slate-400">
+                  <div className="text-xs text-slate-700 dark:text-slate-200">
+                    <p className="text-slate-600 dark:text-slate-300">
                       Descarta cualquier edición realizada en esta ventana y regresa al directorio.
                     </p>
                   </div>
@@ -522,7 +524,7 @@ export const StudentFormCoachPanel: React.FC<StudentFormCoachPanelProps> = ({
       </div>
 
       {/* Footer Reassurance */}
-      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 text-center">
         <span>I.E. Denzil Escolar · Orientación pedagógica cálida</span>
       </div>
     </aside>

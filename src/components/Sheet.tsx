@@ -332,7 +332,7 @@ export const Sheet: React.FC<SheetProps> = ({
                 {title}
               </h2>
               {subtitle && (
-                <span className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                <span className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1">
                   {subtitle}
                 </span>
               )}
@@ -352,6 +352,8 @@ export const Sheet: React.FC<SheetProps> = ({
                 <img
                   src={yacitaIdle}
                   alt="Yacita"
+                  loading="lazy"
+                  decoding="async"
                   className="w-5 h-5 object-contain"
                 />
                 <span className="hidden sm:inline">Ayuda</span>

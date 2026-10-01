@@ -20,10 +20,9 @@ import {
   CRITERIA_DEFINITIONS,
   TeacherProfile,
 } from '../types';
-import { downloadDocxFile, generateOfficialDocxBlob } from '../utils/docxExport';
 import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
-import { generateOfficialPDF } from '../utils/pdfExport';
 import MembreteReporte from './MembreteReporte';
+import FichaCuaderno from './FichaCuaderno';
 import { useYacitaCoach } from '../coach';
 
 interface OfficialReportsHubProps {
@@ -52,6 +51,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
   const [successBanner, setSuccessBanner] = useState<string>('');
   const [parentSummary, setParentSummary] = useState<string>('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState<boolean>(false);
+  const [reportFormat, setReportFormat] = useState<'carta' | 'cuaderno'>('carta');
 
   const handleGenerateParentSummary = async () => {
     if (!currentStudent) return;
@@ -113,6 +113,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
     if (!currentStudent) return;
     try {
       setIsDownloadingWord(true);
+      const { downloadDocxFile } = await import('../utils/docxExport');
       await downloadDocxFile({
         student: currentStudent,
         incident: currentIncident,
@@ -142,6 +143,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
     if (!currentStudent) return;
     try {
       setIsExportingPDF(true);
+      const { generateOfficialPDF } = await import('../utils/pdfExport');
       const pdf = await generateOfficialPDF({
         student: currentStudent,
         incident: currentIncident,
@@ -225,6 +227,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
 
             <button
               onClick={handlePrint}
+              data-yacita="reports_btn_print"
               className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-slate-700 hover:bg-slate-800 text-white transition-colors shadow-xs min-h-[44px]"
             >
               <Printer className="w-4 h-4" />
@@ -304,12 +307,56 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             </select>
           </div>
         </div>
+
+        {/* Formato de Visualización e Impresión */}
+        <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Formato de Presentación:
+            </span>
+            <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl gap-1">
+              <button
+                type="button"
+                onClick={() => setReportFormat('carta')}
+                data-yacita="reports_format_carta"
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors min-h-[44px] flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-hidden ${
+                  reportFormat === 'carta'
+                    ? 'bg-blue-700 text-white shadow-xs'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Acta Completa (Carta Oficial)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportFormat('cuaderno')}
+                data-yacita="reports_format_cuaderno"
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors min-h-[44px] flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-hidden ${
+                  reportFormat === 'cuaderno'
+                    ? 'bg-blue-700 text-white shadow-xs'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                <Printer className="w-4 h-4" />
+                <span>Ficha Cuaderno (2 por hoja)</span>
+              </button>
+            </div>
+          </div>
+          <span className="text-xs text-slate-600 dark:text-slate-300 italic">
+            {reportFormat === 'cuaderno'
+              ? 'Dos fichas idénticas con línea de corte punteada para pegar en el cuaderno escolar.'
+              : 'Documento legal institucional con membrete oficial 2026 para archivo o rectoría.'}
+          </span>
+        </div>
       </div>
 
       {/* DOCUMENT PREVIEW CONTAINER - STRICT LETTER SIZE & TYPOGRAPHY */}
       <div className="flex justify-center w-full overflow-x-auto pb-8">
         <div
-          className="print-container bg-white text-black w-full max-w-[800px] min-h-[1050px] p-8 sm:p-10 shadow-lg border border-slate-300 rounded-lg sm:rounded-none"
+          className={`print-container bg-white text-black w-full max-w-[800px] ${
+            reportFormat === 'cuaderno' ? 'p-3 sm:p-5' : 'min-h-[1050px] p-8 sm:p-10'
+          } shadow-lg border border-slate-300 rounded-lg sm:rounded-none`}
           style={{
             fontFamily: 'Arial, Helvetica, sans-serif',
             fontSize: '12pt',
@@ -318,13 +365,25 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             color: '#000000',
           }}
         >
-          <MembreteReporte>
+          {reportFormat === 'cuaderno' ? (
+            currentStudent && (
+              <FichaCuaderno
+                student={currentStudent}
+                score={currentDailyScore}
+                incident={currentIncident}
+                teacher={teacher}
+                dateStr={selectedDate}
+                parentSummary={parentSummary}
+              />
+            )
+          ) : (
+            <MembreteReporte>
             {/* Título Oficial del Reporte */}
             <div className="text-center my-3 pb-2 border-b border-slate-300">
               <h2 className="text-[12pt] font-bold uppercase text-black tracking-wide font-sans">
                 REGISTRO DE SEGUIMIENTO Y TARJETA DIARIA CONDUCTUAL (TDR)
               </h2>
-              <p className="text-[9.5pt] italic text-slate-700 font-serif">
+              <p className="text-[10pt] italic text-slate-700 font-serif">
                 Modelo Pedagógico Formativo A-B-C y Sistema de Justicia Restaurativa Escolar
               </p>
             </div>
@@ -476,7 +535,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
                 type="button"
                 onClick={handleGenerateParentSummary}
                 disabled={isGeneratingSummary}
-                className="no-print inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 px-2.5 py-1 rounded transition-colors shadow-2xs"
+                className="no-print inline-flex items-center gap-1 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 px-2.5 py-1 rounded transition-colors shadow-2xs"
               >
                 <Sparkles className="w-3 h-3 text-amber-700" />
                 <span>{parentSummary ? 'Regenerar con Yacita' : '🪄 Redactar informe para acudiente con Yacita'}</span>
@@ -498,7 +557,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
             <h3 className="print-section-title text-[12pt] font-bold uppercase text-black border-b border-black pb-1 mb-3">
               4. COMPROMISOS Y FIRMAS FORMALES
             </h3>
-            <p className="text-[9.5pt] italic text-slate-700 mb-8">
+            <p className="text-[10pt] italic text-slate-700 mb-8">
               En constancia de lo registrado y como pacto solidario entre la familia y la Institución Educativa Denzil Escolar
               para garantizar el derecho a la educación en un ambiente de sana convivencia y afecto.
             </p>
@@ -508,27 +567,30 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
               <div className="flex flex-col items-center">
                 <div className="w-full border-t border-black mb-1"></div>
                 <strong className="block text-[10.5pt]">{teacher.name}</strong>
-                <span className="text-[9pt] italic text-slate-700">Firma Docente / Orientador</span>
+                <span className="text-[10pt] italic text-slate-700">Firma Docente / Orientador</span>
               </div>
 
               {/* Acudiente */}
               <div className="flex flex-col items-center">
                 <div className="w-full border-t border-black mb-1"></div>
                 <strong className="block text-[10.5pt]">{currentStudent?.guardianName || 'Acudiente'}</strong>
-                <span className="text-[9pt] italic text-slate-700">Firma Padre / Acudiente</span>
+                <span className="text-[10pt] italic text-slate-700">Firma Padre / Acudiente</span>
               </div>
 
               {/* Estudiante */}
               <div className="flex flex-col items-center">
                 <div className="w-full border-t border-black mb-1"></div>
                 <strong className="block text-[10.5pt]">{currentStudent?.fullName || 'Estudiante'}</strong>
-                <span className="text-[9pt] italic text-slate-700">Compromiso del Estudiante</span>
+                <span className="text-[10pt] italic text-slate-700">Compromiso del Estudiante</span>
               </div>
             </div>
           </div>
         </MembreteReporte>
+      )}
       </div>
     </div>
     </div>
   );
 };
+
+export default OfficialReportsHub;
