@@ -1,6 +1,6 @@
 // public/sw.js
 // Service Worker for I.E. Denzil Escolar - Seguimiento Conductual y TDR
-const CACHE_NAME = 'denzil-tdr-v1';
+const CACHE_NAME = 'denzil-tdr-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -54,7 +54,38 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (images, scripts, styles): Cache first, fallback to network
+  // Never cache API proxy or dynamic endpoints
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Code (scripts, styles, workers, Vite dev modules): NETWORK FIRST so that
+  // updates are always seen; fall back to cache only when offline.
+  const isCode =
+    ['script', 'style', 'worker'].includes(event.request.destination) ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.startsWith('/node_modules/') ||
+    /\.(js|mjs|css|tsx?|json)$/.test(url.pathname);
+
+  if (isCode) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request).then(
+            (cached) => cached || new Response('Offline', { status: 503, statusText: 'Service Unavailable' })
+          )
+        )
+    );
+    return;
+  }
+
+  // Static assets (images, fonts): Cache first, fallback to network
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
@@ -63,12 +94,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          // Do not cache API proxy or dynamic endpoints
-          if (!url.pathname.startsWith('/api/')) {
-            cache.put(event.request, responseToCache);
-          }
-        });
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         return response;
       });
     }).catch(() => {

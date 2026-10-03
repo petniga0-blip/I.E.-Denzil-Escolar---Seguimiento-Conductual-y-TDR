@@ -24,6 +24,8 @@ import { generateParentSummaryWithYacita } from '../utils/yacitaAI';
 import MembreteReporte from './MembreteReporte';
 import FichaCuaderno from './FichaCuaderno';
 import { useYacitaCoach } from '../coach';
+import { fechaLocalHoy } from '../utils/dateUtils';
+import { useToast } from './Toast';
 
 interface OfficialReportsHubProps {
   students: Student[];
@@ -40,8 +42,9 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
   teacher,
   onSyncDrive,
 }) => {
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => fechaLocalHoy(), []);
   const { notifyActionEvent } = useYacitaCoach();
+  const { showToast } = useToast();
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
     students.length > 0 ? students[0].id : ''
   );
@@ -127,7 +130,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
       setTimeout(() => setSuccessBanner(''), 4000);
     } catch (err) {
       console.error(err);
-      alert('Error al generar el archivo Word.');
+      showToast('Error al generar el archivo Word.', 'error');
     } finally {
       setIsDownloadingWord(false);
     }
@@ -159,7 +162,7 @@ export const OfficialReportsHub: React.FC<OfficialReportsHubProps> = ({
       setTimeout(() => setSuccessBanner(''), 3500);
     } catch (err) {
       console.error(err);
-      alert('Hubo un error al generar el PDF oficial.');
+      showToast('Hubo un error al generar el PDF oficial.', 'error');
     } finally {
       setIsExportingPDF(false);
     }

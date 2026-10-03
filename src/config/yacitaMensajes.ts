@@ -1123,6 +1123,27 @@ export const GUIA_CAMPOS: Record<string, GuiaCampoItem> = {
     burbujaCorta: 'Abre el menú con opciones de cuenta y respaldos institucionales.',
     textoVoz: 'Abre el menú con opciones de cuenta y respaldos institucionales.',
   },
+  'backup_reminder_download': {
+    id: 'backup_reminder_download',
+    etiqueta: 'Descargar Respaldo Preventivo',
+    funcion: 'Guarda una copia de seguridad en formato JSON con todos los datos locales de convivencia.',
+    consejos: [
+      'Mantén siempre una copia guardada en tu computador o memoria USB.',
+      'Si cambias de dispositivo, podrás restaurar todos los registros con este archivo.',
+    ],
+    burbujaCorta: 'Descarga un archivo con las valoraciones e incidentes registrados.',
+    textoVoz: 'Descarga un archivo con las valoraciones e incidentes registrados.',
+  },
+  'backup_reminder_snooze': {
+    id: 'backup_reminder_snooze',
+    etiqueta: 'Recordar Respaldo Más Tarde',
+    funcion: 'Pospone el aviso de respaldo preventivo durante 24 horas.',
+    consejos: [
+      'El aviso volverá a recordarte mañana si aún no has descargado una copia.',
+    ],
+    burbujaCorta: 'Pospone el recordatorio de respaldo por veinticuatro horas.',
+    textoVoz: 'Pospone el recordatorio de respaldo por veinticuatro horas.',
+  },
 
   // --- NAVEGACIÓN ---
   'nav_tab_students': {

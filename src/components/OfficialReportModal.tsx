@@ -24,6 +24,8 @@ import MembreteReporte from './MembreteReporte';
 import FichaCuaderno from './FichaCuaderno';
 import { useYacitaCoach } from '../coach';
 import { Sheet } from './Sheet';
+import { fechaLocalHoy } from '../utils/dateUtils';
+import { useToast } from './Toast';
 
 interface OfficialReportModalProps {
   isOpen: boolean;
@@ -45,6 +47,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   onSyncToGoogleDrive,
 }) => {
   const { notifyModalOpen, notifyModalClose, notifyActionEvent } = useYacitaCoach();
+  const { showToast } = useToast();
   const printAreaRef = useRef<HTMLDivElement>(null);
   const [isExportingWord, setIsExportingWord] = useState(false);
   const [exportNotice, setExportNotice] = useState<string>('');
@@ -82,7 +85,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
     }
   };
 
-  const dateStr = incident?.date || dailyScore?.date || new Date().toISOString().split('T')[0];
+  const dateStr = incident?.date || dailyScore?.date || fechaLocalHoy();
   const timeStr = incident?.time || '08:00 AM';
   const subjectStr = incident?.subject || 'Dirección de Aula / Actividad Formativa';
 
@@ -107,7 +110,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
       setTimeout(() => setExportNotice(''), 3500);
     } catch (e) {
       console.error(e);
-      alert('Hubo un error al generar el PDF.');
+      showToast('Hubo un error al generar el PDF.', 'error');
     } finally {
       setIsExportingPDF(false);
     }
@@ -129,7 +132,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
       setTimeout(() => setExportNotice(''), 3500);
     } catch (e) {
       console.error(e);
-      alert('Hubo un error al generar el archivo Word.');
+      showToast('Hubo un error al generar el archivo Word.', 'error');
     } finally {
       setIsExportingWord(false);
     }

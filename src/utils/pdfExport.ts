@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { ASSET_SELLO, ASSET_CAT } from '../config/assets';
 import { MEMBRETE_CONFIG } from '../config/membrete';
 import { Student, ABCIncident, DailyCriterionScore, TeacherProfile, CRITERIA_DEFINITIONS } from '../types';
+import { fechaLocalHoy } from './dateUtils';
 
 let cachedSelloBase64: string | null = null;
 let cachedCatBase64: string | null = null;
@@ -209,7 +210,7 @@ export async function generateOfficialPDF(options: GeneratePDFOptions): Promise<
   // 1. IDENTIFICACIÓN DEL ESTUDIANTE
   drawSectionTitle('1. IDENTIFICACIÓN DEL ESTUDIANTE');
 
-  const dateStr = reportDate || incident?.date || dailyScore?.date || new Date().toISOString().split('T')[0];
+  const dateStr = reportDate || incident?.date || dailyScore?.date || fechaLocalHoy();
   const idRows = [
     [
       { label: 'Estudiante', val: student.fullName },

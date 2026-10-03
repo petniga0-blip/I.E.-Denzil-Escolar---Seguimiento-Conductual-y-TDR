@@ -14,6 +14,7 @@ import { Student, ShiftType } from '../types';
 import { useYacitaCoach } from '../coach';
 import { StudentFormCoachPanel, StudentFormFieldKey } from './StudentFormCoachPanel';
 import { Sheet } from './Sheet';
+import { YacitaRewriteButton } from './YacitaRewriteButton';
 import { EmptyState } from './LoadingSkeleton';
 
 interface StudentManagementProps {
@@ -540,6 +541,14 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({
                   data-yacita="field_medicalSensoryNotes"
                   placeholder="Ej. Sensibilidad al calor, necesidad de lentes, pausas motoras guiadas..."
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden resize-none"
+                />
+                {/* Mejorar redacción con Yacita (sin enviar el nombre del estudiante) */}
+                <YacitaRewriteButton
+                  className="mt-2"
+                  currentText={medicalSensoryNotes}
+                  field="general"
+                  context={{ grade }}
+                  onApply={(improved) => setMedicalSensoryNotes(improved)}
                 />
               </div>
             </form>

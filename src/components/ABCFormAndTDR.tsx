@@ -25,7 +25,9 @@ import {
 } from '../types';
 import { YacitaRewriteButton } from './YacitaRewriteButton';
 import { suggestRestorativePlanWithYacita } from '../utils/yacitaAI';
+import { fechaLocalHoy } from '../utils/dateUtils';
 import { Lightbulb } from 'lucide-react';
+import { useToast } from './Toast';
 
 interface ABCFormAndTDRProps {
   students: Student[];
@@ -44,7 +46,8 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
   onSaveIncident,
   onOpenReportModal,
 }) => {
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const { showToast } = useToast();
+  const todayStr = useMemo(() => fechaLocalHoy(), []);
   const currentTimeStr = useMemo(() => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -163,7 +166,7 @@ export const ABCFormAndTDR: React.FC<ABCFormAndTDRProps> = ({
     if (!currentSelectedStudent) return;
 
     if (selectedBehaviors.length === 0 && !otherBehaviorDetail.trim()) {
-      alert('Por favor seleccione al menos una conducta observada o descríbala.');
+      showToast('Por favor seleccione al menos una conducta observada o descríbala.', 'error');
       return;
     }
 

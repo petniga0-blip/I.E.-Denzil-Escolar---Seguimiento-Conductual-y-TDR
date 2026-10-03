@@ -861,6 +861,17 @@ export class ConversationController {
 
       const yacitaId = interactiveEl.getAttribute('data-yacita');
 
+      // Las pestañas de navegación ya envían su propio mensaje vía notifyTabChange().
+      // Si además se despachara la guía de campo (focusin/click, ~400 ms después),
+      // "gana el último" reemplazaría el mensaje de pestaña a mitad de escritura.
+      if (yacitaId && yacitaId.startsWith('nav_tab_')) {
+        if (this.fieldDebounceTimer) {
+          clearTimeout(this.fieldDebounceTimer);
+          this.fieldDebounceTimer = null;
+        }
+        return;
+      }
+
       // Check repetitive matrix actions for micro-feedback
       const isRepetitiveScore =
         yacitaId === 'matrix_score_3' ||

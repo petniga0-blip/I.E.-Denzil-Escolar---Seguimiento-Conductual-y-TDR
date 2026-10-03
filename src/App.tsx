@@ -26,6 +26,10 @@ import { GoogleAccountModal } from './components/GoogleAccountModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
 import { ReportSkeleton } from './components/LoadingSkeleton';
 import { YacitaCoachProvider, useYacitaCoach, YacitaFloatingAvatar } from './coach';
+import { fechaLocalHoy } from './utils/dateUtils';
+import { ToastProvider, showToast } from './components/Toast';
+import { BackupReminder } from './components/BackupReminder';
+import { UpdateBanner } from './components/UpdateBanner';
 
 const OfficialReportsHub = React.lazy(() => import('./components/OfficialReportsHub'));
 const OfficialReportModal = React.lazy(() => import('./components/OfficialReportModal'));
@@ -49,6 +53,8 @@ function MainAppContent({
   handleSetAllStudentsScore,
   handleSaveIncident,
   handleImportBackup,
+  handleExportBackup,
+  lastBackupAt,
 }: {
   isDark: boolean;
   toggleTheme: () => void;
@@ -68,6 +74,8 @@ function MainAppContent({
   handleSetAllStudentsScore: (date: string, studentIds: string[], level: ScoreLevel) => void;
   handleSaveIncident: (incidentData: Omit<ABCIncident, 'id' | 'createdAt'>) => void;
   handleImportBackup: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleExportBackup: () => void;
+  lastBackupAt: string | null;
 }) {
   const { notifyTabChange, notifyModalOpen, notifyModalClose } = useYacitaCoach();
 
@@ -133,6 +141,9 @@ function MainAppContent({
 
   return (
     <div className="min-h-[100dvh] bg-slate-100 text-slate-900 dark:bg-[#070e20] dark:text-slate-100 flex flex-col font-sans transition-colors overflow-x-hidden">
+      {/* PWA Update Banner */}
+      <UpdateBanner />
+
       {/* Institutional Header */}
       <Header
         currentTab={currentTab}
@@ -142,8 +153,15 @@ function MainAppContent({
         teacher={teacher}
         onOpenGoogleModal={openGoogleModal}
         onOpenSyncModal={openDriveSyncModal}
-        onExportBackup={exportBackupJSON}
+        onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
+      />
+
+      {/* Backup Reminder Banner */}
+      <BackupReminder
+        hasStudents={students.length > 0}
+        lastBackupAt={lastBackupAt}
+        onExportBackup={handleExportBackup}
       />
 
       {/* Main Content Area with exact safe clearance for mobile fixed bars and landscape rail */}
@@ -207,7 +225,7 @@ function MainAppContent({
             dailyScore={scores.find(
               (sc) =>
                 sc.studentId === selectedStudentForReport.id &&
-                sc.date === (selectedIncidentForReport?.date || new Date().toISOString().split('T')[0])
+                sc.date === (selectedIncidentForReport?.date || fechaLocalHoy())
             )}
             teacher={teacher}
             onSyncToGoogleDrive={openDriveSyncModal}
@@ -229,7 +247,7 @@ function MainAppContent({
         isOpen={isDriveSyncModalOpen}
         onClose={closeDriveSyncModal}
         teacher={teacher}
-        onExportBackup={exportBackupJSON}
+        onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
       />
 
@@ -417,6 +435,25 @@ export default function App() {
   };
 
   // Backup & Restore
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('denzil_last_backup_at');
+    } catch {
+      return null;
+    }
+  });
+
+  const handleExportBackup = () => {
+    exportBackupJSON();
+    const nowIso = new Date().toISOString();
+    try {
+      localStorage.setItem('denzil_last_backup_at', nowIso);
+    } catch {
+      // ignore
+    }
+    setLastBackupAt(nowIso);
+  };
+
   const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -427,35 +464,39 @@ export default function App() {
           setScores(getStoredScores());
           setIncidents(getStoredIncidents());
           setTeacher(getStoredTeacher());
-          alert('¡Copia de seguridad restaurada con éxito!');
+          showToast('¡Copia de seguridad restaurada con éxito!', 'exito');
         },
-        (err) => alert(err)
+        (err) => showToast(err, 'error')
       );
     }
   };
 
   return (
-    <YacitaCoachProvider teacher={teacher} initialTab="matrix">
-      <MainAppContent
-        isDark={isDark}
-        toggleTheme={toggleTheme}
-        teacher={teacher}
-        setTeacher={setTeacher}
-        students={students}
-        setStudents={setStudents}
-        scores={scores}
-        setScores={setScores}
-        incidents={incidents}
-        setIncidents={setIncidents}
-        handleAddStudent={handleAddStudent}
-        handleUpdateStudent={handleUpdateStudent}
-        handleDeleteStudent={handleDeleteStudent}
-        handleUpdateScore={handleUpdateScore}
-        handleUpdateNotes={handleUpdateNotes}
-        handleSetAllStudentsScore={handleSetAllStudentsScore}
-        handleSaveIncident={handleSaveIncident}
-        handleImportBackup={handleImportBackup}
-      />
-    </YacitaCoachProvider>
+    <ToastProvider>
+      <YacitaCoachProvider teacher={teacher} initialTab="matrix">
+        <MainAppContent
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+          teacher={teacher}
+          setTeacher={setTeacher}
+          students={students}
+          setStudents={setStudents}
+          scores={scores}
+          setScores={setScores}
+          incidents={incidents}
+          setIncidents={setIncidents}
+          handleAddStudent={handleAddStudent}
+          handleUpdateStudent={handleUpdateStudent}
+          handleDeleteStudent={handleDeleteStudent}
+          handleUpdateScore={handleUpdateScore}
+          handleUpdateNotes={handleUpdateNotes}
+          handleSetAllStudentsScore={handleSetAllStudentsScore}
+          handleSaveIncident={handleSaveIncident}
+          handleImportBackup={handleImportBackup}
+          handleExportBackup={handleExportBackup}
+          lastBackupAt={lastBackupAt}
+        />
+      </YacitaCoachProvider>
+    </ToastProvider>
   );
 }

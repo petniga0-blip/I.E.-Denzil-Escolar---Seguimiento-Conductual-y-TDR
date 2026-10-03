@@ -25,6 +25,7 @@ import {
 import { emitYacitaEvent } from '../utils/yacitaVoice';
 import { useYacitaCoach } from '../coach';
 import { Sheet } from './Sheet';
+import { fechaLocalHoy } from '../utils/dateUtils';
 
 interface BehaviorMatrixProps {
   students: Student[];
@@ -44,7 +45,7 @@ export const BehaviorMatrix: React.FC<BehaviorMatrixProps> = ({
   onOpenABCForStudent,
 }) => {
   const { notifyActionEvent } = useYacitaCoach();
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => fechaLocalHoy(), []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedGrade, setSelectedGrade] = useState<string>('todos');
   const [selectedShift, setSelectedShift] = useState<string>('todos');

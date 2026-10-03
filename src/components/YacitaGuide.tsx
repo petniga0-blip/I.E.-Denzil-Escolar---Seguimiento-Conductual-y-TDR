@@ -39,6 +39,7 @@ import {
   YACITA_TOUR_STEPS,
 } from '../utils/yacitaVoice';
 import { TeacherProfile } from '../types';
+import { useToast } from './Toast';
 
 export interface YacitaGuideProps {
   currentTab: 'students' | 'matrix' | 'abc' | 'reports';
@@ -69,6 +70,7 @@ export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
   isDarkMode,
   onOpenAddStudent,
 }) => {
+  const { showToast } = useToast();
   const teacherFirstName = useMemo(() => getTeacherFirstName(teacher.name), [teacher.name]);
   const timeGreeting = useMemo(() => getTimeGreeting(teacherFirstName), [teacherFirstName]);
 
@@ -353,7 +355,7 @@ export const YacitaGuide: React.FC<YacitaGuideProps> = React.memo(({
 
   const handleToggleSpeech = (id: string, text: string) => {
     if (!('speechSynthesis' in window)) {
-      alert('Tu navegador no soporta síntesis de voz.');
+      showToast('Tu navegador no soporta síntesis de voz.', 'error');
       return;
     }
 

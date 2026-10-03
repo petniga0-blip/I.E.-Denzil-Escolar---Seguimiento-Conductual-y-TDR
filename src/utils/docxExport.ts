@@ -19,6 +19,7 @@ import {
 import { ABCIncident, Student, DailyCriterionScore, CRITERIA_DEFINITIONS } from '../types';
 import { ASSET_SELLO, ASSET_CAT } from '../config/assets';
 import { MEMBRETE_CONFIG } from '../config/membrete';
+import { fechaLocalHoy } from './dateUtils';
 
 interface ExportDocxOptions {
   student: Student;
@@ -68,7 +69,7 @@ export async function generateOfficialDocxBlob(options: ExportDocxOptions): Prom
     getAssetBuffer(ASSET_CAT),
   ]);
 
-  const dateStr = incident?.date || dailyScore?.date || customDate || new Date().toISOString().split('T')[0];
+  const dateStr = incident?.date || dailyScore?.date || customDate || fechaLocalHoy();
   const timeStr = incident?.time || '08:00 AM';
   const subjectStr = incident?.subject || 'Dirección de Grupo y Actividades de Aula';
 
@@ -695,7 +696,7 @@ export async function generateOfficialDocxBlob(options: ExportDocxOptions): Prom
 export async function downloadDocxFile(options: ExportDocxOptions, filename?: string): Promise<void> {
   const blob = await generateOfficialDocxBlob(options);
   const studentCleanName = options.student.fullName.replace(/[^a-zA-Z0-9]/g, '_');
-  const dateStr = options.incident?.date || options.dailyScore?.date || new Date().toISOString().split('T')[0];
+  const dateStr = options.incident?.date || options.dailyScore?.date || fechaLocalHoy();
   const name = filename || `TDR_DenzilEscolar_${studentCleanName}_${dateStr}.docx`;
 
   const url = URL.createObjectURL(blob);

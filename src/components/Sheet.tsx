@@ -50,6 +50,16 @@ export const Sheet: React.FC<SheetProps> = ({
   const hasHistoryPushedRef = useRef(false);
   const isClosingRef = useRef(false);
 
+  // Keep latest props in refs to prevent unnecessary re-runs of history/escape effects
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  hasUnsavedChangesRef.current = hasUnsavedChanges;
+
+  const unsavedChangesMessageRef = useRef(unsavedChangesMessage);
+  unsavedChangesMessageRef.current = unsavedChangesMessage;
+
   // Swipe gesture state
   const touchStartY = useRef<number | null>(null);
   const touchCurrentY = useRef<number | null>(null);
@@ -61,8 +71,8 @@ export const Sheet: React.FC<SheetProps> = ({
   // Handle safe close with unsaved changes check
   const handleRequestClose = useCallback(() => {
     if (isClosingRef.current) return;
-    if (hasUnsavedChanges) {
-      const confirmLeave = window.confirm(unsavedChangesMessage);
+    if (hasUnsavedChangesRef.current) {
+      const confirmLeave = window.confirm(unsavedChangesMessageRef.current);
       if (!confirmLeave) return;
     }
 
@@ -73,9 +83,9 @@ export const Sheet: React.FC<SheetProps> = ({
       hasHistoryPushedRef.current = false;
       window.history.back();
     } else {
-      onClose();
+      onCloseRef.current();
     }
-  }, [hasUnsavedChanges, unsavedChangesMessage, onClose]);
+  }, []);
 
   // Manage Browser / Phone "Back" button via History API
   useEffect(() => {
@@ -97,8 +107,8 @@ export const Sheet: React.FC<SheetProps> = ({
     const handlePopState = (e: PopStateEvent) => {
       // The popstate was initiated by browser/device Back button
       hasHistoryPushedRef.current = false;
-      if (hasUnsavedChanges) {
-        const confirmLeave = window.confirm(unsavedChangesMessage);
+      if (hasUnsavedChangesRef.current) {
+        const confirmLeave = window.confirm(unsavedChangesMessageRef.current);
         if (!confirmLeave) {
           // Re-push state to keep sheet open
           window.history.pushState(stateObj, '');
@@ -106,7 +116,7 @@ export const Sheet: React.FC<SheetProps> = ({
           return;
         }
       }
-      onClose();
+      onCloseRef.current();
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -123,7 +133,7 @@ export const Sheet: React.FC<SheetProps> = ({
         }
       }
     };
-  }, [isOpen, sheetId, hasUnsavedChanges, unsavedChangesMessage, onClose]);
+  }, [isOpen, sheetId]);
 
   // Escape key & background scroll lock & initial scrollTop = 0 & focus management
   useEffect(() => {
@@ -168,7 +178,7 @@ export const Sheet: React.FC<SheetProps> = ({
         }
       }
     };
-  }, [isOpen, handleRequestClose]);
+  }, [isOpen, sheetId]);
 
   // Layout Debugger (?debug=layout)
   useEffect(() => {

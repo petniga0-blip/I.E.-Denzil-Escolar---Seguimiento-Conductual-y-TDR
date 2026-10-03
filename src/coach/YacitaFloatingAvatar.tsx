@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   X,
   Volume2,
@@ -98,6 +98,9 @@ export const YacitaFloatingAvatar: React.FC = () => {
 
   // Settings sheet open state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // Stable callback: an inline arrow here re-ran the Sheet's history effect on every
+  // re-render of this component, which popped history and closed the sheet immediately.
+  const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
   // Detect whether any Sheet is open in DOM to adjust avatar size & position
   const [hasOpenSheet, setHasOpenSheet] = useState(false);
@@ -265,7 +268,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
     return (
       <div
         data-yacita-ignore="true"
-        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+14px)] sm:bottom-4 right-3 sm:right-4 z-[9990] no-print flex flex-col items-end gap-2"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] sm:bottom-4 right-3 sm:right-4 z-[9990] no-print flex flex-col items-end gap-2"
       >
         {/* Floating bubble even when minimized unless coaching level is silencioso */}
         {shouldShowFloatingBubble && (
@@ -378,8 +381,8 @@ export const YacitaFloatingAvatar: React.FC = () => {
               bubblePlacement === 'top'
                 ? 'top-16 sm:top-20 right-3 sm:right-4'
                 : hasOpenSheet
-                ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+60px)] right-3 w-[min(calc(100vw-24px),280px)]'
-                : 'bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4'
+                ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+144px)] right-3 w-[min(calc(100vw-24px),280px)]'
+                : 'bottom-[calc(env(safe-area-inset-bottom,0px)+144px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4'
             } w-[min(calc(100vw-24px),290px)] sm:w-[290px] max-w-[290px] bg-white dark:bg-[#111c3d] text-slate-800 dark:text-slate-100 rounded-2xl p-3 sm:p-3.5 border-2 border-amber-400 dark:border-amber-500 shadow-2xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none cursor-pointer z-[9995]`}
             role="region"
             aria-live="polite"
@@ -499,7 +502,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
         {/* MICRO-FEEDBACK BADGE */}
         {microFeedback && !currentBubble && !isChatOpen && (
           <div
-            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none flex items-center gap-1.5 z-[9994]"
+            className={`pointer-events-auto fixed ${hasOpenSheet ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+144px)]' : 'bottom-[calc(env(safe-area-inset-bottom,0px)+144px)]'} sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4 px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400/60 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none flex items-center gap-1.5 z-[9994]`}
             role="status"
           >
             <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${prefersReducedMotion ? '' : 'animate-spin'}`} />
@@ -511,7 +514,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
         {isMenuOpen && (
           <div
             data-yacita-ignore="true"
-            className="pointer-events-auto fixed bottom-[calc(env(safe-area-inset-bottom,0px)+74px)] sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4 bg-white/95 dark:bg-[#0f1938]/95 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in zoom-in-95 fade-in duration-150 motion-reduce:animate-none z-[9994] flex items-center gap-1 max-h-[56px]"
+            className={`pointer-events-auto fixed ${hasOpenSheet ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+144px)]' : 'bottom-[calc(env(safe-area-inset-bottom,0px)+144px)]'} sm:bottom-[76px] landscape:bottom-[58px] right-3 sm:right-4 bg-white/95 dark:bg-[#0f1938]/95 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in zoom-in-95 fade-in duration-150 motion-reduce:animate-none z-[9994] flex items-center gap-1 max-h-[56px]`}
           >
             {/* Quick 1: Voice Toggle */}
             <button
@@ -577,8 +580,8 @@ export const YacitaFloatingAvatar: React.FC = () => {
             hasFullScreenSheet
               ? 'hidden'
               : hasOpenSheet
-              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] right-3'
-              : 'bottom-[calc(env(safe-area-inset-bottom,0px)+14px)] sm:bottom-4 landscape:bottom-2.5 right-3 sm:right-4'
+              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] right-3'
+              : 'bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] sm:bottom-4 landscape:bottom-2.5 right-3 sm:right-4'
           } flex items-end z-[9990]`}
         >
           <button
@@ -623,7 +626,7 @@ export const YacitaFloatingAvatar: React.FC = () => {
       {/* FULL SETTINGS BOTTOM SHEET / MODAL (PARTE 4.C) */}
       <Sheet
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={closeSettings}
         sheetId="yacita_settings"
         size="sm"
         title="Ajustes de Yacita"
